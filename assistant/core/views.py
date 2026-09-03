@@ -1,9 +1,6 @@
 from django.shortcuts import render
 from django.views import View
 
-# def render_home(request):
-#     return render(request, 'core/core.html')
-
 class Core(View):
     template_name = "core/core.html"
 
