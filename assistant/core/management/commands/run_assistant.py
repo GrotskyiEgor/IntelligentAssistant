@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 import speech_recognition, platform, os, subprocess, webbrowser, pyautogui, pygame
-
+from rapidfuzz import fuzz, process
 
 
 from utils.find_path import find_path
@@ -16,7 +16,7 @@ class Command(BaseCommand):
             return
 
         self.run = True
-        self.stdout.write(self.style.SUCCESS("Асистент запущений..."))
+        print(self.style.SUCCESS("Асистент запущений..."))
 
         # Инициализация класса для распознавания голоса
         recognizer = speech_recognition.Recognizer()
@@ -25,11 +25,11 @@ class Command(BaseCommand):
 
         # Получение голоса в source
         with microphone as source:
-            self.stdout.write("Почекайте, налаштовую фоновий шум...")
+            print("Почекайте, налаштовую фоновий шум...")
 
             # Убираем фоновый шум
             recognizer.adjust_for_ambient_noise(source=source)
-            self.stdout.write(self.style.SUCCESS("Слухаю вас..."))
+            print(self.style.SUCCESS("Слухаю вас..."))
 
             while self.run:
                 try:
@@ -43,75 +43,71 @@ class Command(BaseCommand):
                 except speech_recognition.UnknownValueError:
                     continue
                 except Exception as error:
-                    self.stdout.write(self.style.WARNING(f"Помилка!\n{error}"))
+                    print(self.style.WARNING(f"Помилка!\n{error}"))
 
     def doing_task(self, text, source):
-        self.stdout.write(f"Ви сказали: {text}")
+        print(f"Ви сказали: {text}")
 
-        if "допомога" in text.lower():
+        text_lower = text.lower()
+
+        if "допомога" in text_lower:
             self.help()
-        elif "зупинись" in text.lower():
+            return
+
+        if "зупинись" in text_lower:
             self.run = False
-        elif "відкрий" in text.lower() or "закрий" in text.lower():
-            all_commnds = AppCommand.objects.all()
-            list_apps = []
+            return
 
-            for command in all_commnds:
-                if command.keyword.lower() in text.lower():
-                    list_apps.append(command)
+        action = self.get_action(text)
 
-            # if "групу" in text.lower():
-            #     groups = AppGroup.objects.all()
+        if not action:
+            return
+        
+        app_text = text_lower
+        command_words = ["відкрий", "відкрити", "запусти", "запустити", "відкривай", "закрий", "закрити", "закривай", "вимкни", "вимкнути"]
 
-            #     for group in groups:
-            #         if group.name.lower() in text.lower():
-            #             list_apps.extend(group.apps.all())
+        for word in command_words:
+            app_text = app_text.replace(word, "")
 
-            print(list_apps)
-            if list_apps:
-                if len(list_apps) >= 1:
-                    if "відкрий" in text.lower():
-                        run_voice("Відкриваю програми")
-                    else:
-                        run_voice("Закриваю програми")
+        app_text = app_text.strip()
+        print(f"Дія {action}, програма {app_text}")
+        user_app = self.find_app(app_text)
 
-                    for user_app in list_apps:
-                        if user_app.path:
-                            if "відкрий" in text.lower():
-                                if len(list_apps) == 1: 
-                                    run_voice(f"Відкриваю {user_app.name}")
+        if not user_app:
+            run_voice(f"Я не знайшла програму {app_text}")
+            return
 
-                                self.open_app(path_app=user_app.path)
-                            else:
-                                if len(list_apps) == 1: 
-                                    (f"Закриваю {user_app.name}")
+        print(self.style.SUCCESS(f"Знайдено: {user_app.name}"))
+        
+        if action == "open":
+            run_voice(f"Відкриваю {user_app.name}")
 
-                                self.close_app(app_name=os.path.basename(user_app.path))
+            if user_app.path:
+                self.open_app(path_app=user_app.path)
+            else:
+                run_voice(f"Шукаю {user_app.name}")
 
-                        else:
-                            if len(list_apps) == 1: 
-                                run_voice(f"Шукаю {user_app.name}")
+                path = find_path(filename=user_app.name)
 
-                            path = find_path(filename = user_app.name)
-                            
-                            if path:
-                                if len(list_apps) == 1: 
-                                    run_voice(f"Знайшла {user_app.name}")
+                if path:
+                    run_voice(f"Знайшла {user_app.name}")
+                    self.open_app(path_app=path)
 
-                                if "відкрий" in text.lower():
-                                    self.open_app(path_app=path)
-                                else: 
-                                    self.close_app(app_name=os.path.basename(user_app.path))
-                                
-                                user_app.path = path
-                                user_app.save()
-                            else:
-                                if len(list_apps) == 1: 
-                                    run_voice("Я не знайшла шлях до цієї програми") 
+                    user_app.path = path
+                    user_app.save()
+
                 else:
-                    run_voice("Я не знайшла такої програми")    
+                    run_voice(f"Я не знайшла шлях до {user_app.name}")
 
-            print(list_apps)
+        elif action == "close":
+            run_voice(f"Закриваю {user_app.name}")
+
+            if user_app.path:
+                app_name = os.path.basename(user_app.path)
+
+                self.close_app(app_name=app_name)
+            else:
+                run_voice(f"Я не знаю шлях до {user_app.name}")
 
     def help(self):
         print("assistant help")
@@ -119,21 +115,13 @@ class Command(BaseCommand):
 
     def close_app(self, app_name: str):
         try:
-            print("close apppppp", app_name)
             # Получение ос
             system = platform.system()
 
             if system == "Windows":
-                # Завершает внешнюю програму из кода
-                # subprocess.run(
-                #     args=["taskkill", "/IM", app_name, "/F"],
-                #     stdout=subprocess.DEVNULL,
-                #     stderr=subprocess.DEVNULL
-                # )
-
                 result = subprocess.run(
                     args=["taskkill", "/F", "/IM", "chrome.exe", "/T"],
-                    capture_output=True,  # Захватываем вывод, чтобы прочитать ошибку
+                    capture_output=True,
                     text=True,
                 )
 
@@ -141,10 +129,10 @@ class Command(BaseCommand):
                 # print("Вывод (stdout):", result.stdout)
                 # print("Ошибки (stderr):", result.stderr)
             else: 
-                subprocess.run(args= ["pkill", app_name])
+                subprocess.run(args=["pkill", app_name])
 
         except Exception as error:
-            self.stdout.write(self.style.WARNING(f"Помилка закриття: {error}"))
+            print(self.style.WARNING(f"Помилка закриття: {error}"))
             
     def open_app(self, path_app: str):
         try:
@@ -160,7 +148,7 @@ class Command(BaseCommand):
                 subprocess.Popen(args=[path_app])
 
         except Exception as error:
-            self.stdout.write(self.style.WARNING(f"Помилка запуску: {error}"))
+            print(self.style.WARNING(f"Помилка запуску: {error}"))
 
     def add_arguments(self, parser):
             parser.add_argument(
@@ -168,3 +156,66 @@ class Command(BaseCommand):
                 nargs="*",
                 type=str
             )
+
+    def get_action(self, text):
+        text = self.normalize_text(text)
+
+        open_commands = ["відкрий", "відкрити", "запусти", "запустити", "відкривай"]
+        close_commands = ["закрий", "закрити", "закривай", "вимкни", "вимкнути"]
+
+        words = text.split()
+
+        for word in words:
+            result = process.extractOne(
+                word,
+                open_commands,
+                scorer=fuzz.ratio
+            )
+
+            if result and result[1] >= 70:
+                return "open"
+
+            result = process.extractOne(
+                word,
+                close_commands,
+                scorer=fuzz.ratio
+            )
+
+            if result and result[1] >= 70:
+                return "close"
+
+        return None
+
+    def find_app(self, text):
+        commands = AppCommand.objects.all()
+
+        best_command = None
+        best_score = 0
+
+        text = self.normalize_text(text)
+
+        for command in commands:
+            keyword = self.normalize_text(command.keyword)
+            name = self.normalize_text(command.name)
+
+            keyword_score = fuzz.ratio(text, keyword)
+            name_score = fuzz.ratio(text, name)
+            token_score = fuzz.token_set_ratio(text, keyword)
+
+            score = max(
+                keyword_score,
+                name_score,
+                token_score
+            )
+
+            if score > best_score:
+                best_score = score
+                best_command = command
+
+        if best_score >= 60:
+            return best_command
+
+        return None
+
+    def normalize_text(self, text):
+        return " ".join(text.lower().strip().split())
