@@ -1,195 +1,132 @@
-import speech_recognition, platform, os, subprocess, webbrowser, pyautogui, pygame, site
 import queue, sounddevice as sd, numpy as np
+from torch import cuda as gpu
 
 from django.core.management.base import BaseCommand
 from faster_whisper import WhisperModel
-from torch import cuda
 
-from utils.find_path import find_path
 from utils.voicing_answer import run_voice
-from core.models import *
+from utils.handler import define_command
+
 
 class Command(BaseCommand):
     def __init__(self):
         super().__init__()
-        
-        self.whisper = WhisperModel(
-            "medium",
-            device="cuda",
-            compute_type="float32"
-        )
+
+        if gpu.is_available():
+            self.whisper = WhisperModel(
+                "large-v3",
+                device="cuda",
+                compute_type="int8"
+            )
+        else:
+            self.whisper = WhisperModel(
+                "small",
+                device="cpu",
+                compute_type="int8"
+            )
 
         self.audio_queue = queue.Queue()
         self.run = True
-        
-    def handle(self, *args, **kwargs):
-        if len(kwargs.get("command")) and kwargs.get("command")[0] == "help":
-            self.help()
-            return
 
-        self.stdout.write(self.style.SUCCESS("Асистент запущений..."))
+    def handle(self, *args, **kwargs):
+
+        self.write("Assistant started...")
+        self.success("Listening...")
 
         while self.run:
             try:
                 text = self.listen()
 
-                if not text:
-                    continue
+                if text:
+                    self.write(f"> {text}")
 
-                self.doing_task(text=text)
+                    commands = define_command(text)
+                    words = text.split()
+
+                    for cmd, index in commands:
+                        if cmd == 'open':
+                            app = words[index + 1] if index + 1 < len(words) else None
+                            print('Open:', app)
+
+                        if cmd == 'close':
+                            app = words[index + 1] if index + 1 < len(words) else None
+                            print('Close:', app)
+
+                    # run_voice(f'commands: {command}')
 
             except Exception as error:
-                self.stdout.write(f"Помилка!\n{error}")
-
-    def doing_task(self, text):
-        self.stdout.write(f"Ви сказали: {text}")
-
-        if "допомога" in text.lower():
-            self.help()
-        elif "зупинись" in text.lower():
-            self.run = False
-        elif "відкрий" in text.lower() or "закрий" in text.lower():
-            all_commnds = AppCommand.objects.all()
-            list_apps = []
-
-            for command in all_commnds:
-                if command.keyword.lower() in text.lower():
-                    list_apps.append(command)
-
-            # if "групу" in text.lower():
-            #     groups = AppGroup.objects.all()
-
-            #     for group in groups:
-            #         if group.name.lower() in text.lower():
-            #             list_apps.extend(group.apps.all())
-
-            self.stdout.write(list_apps)
-            if list_apps:
-                if len(list_apps) >= 1:
-                    if "відкрий" in text.lower():
-                        run_voice("Відкриваю програми")
-                    else:
-                        run_voice("Закриваю програми")
-
-                    for user_app in list_apps:
-                        if user_app.path:
-                            if "відкрий" in text.lower():
-                                if len(list_apps) == 1: 
-                                    run_voice(f"Відкриваю {user_app.name}")
-
-                                self.open_app(path_app=user_app.path)
-                            else:
-                                if len(list_apps) == 1: 
-                                    (f"Закриваю {user_app.name}")
-
-                                self.close_app(app_name=os.path.basename(user_app.path))
-
-                        else:
-                            if len(list_apps) == 1: 
-                                run_voice(f"Шукаю {user_app.name}")
-
-                            path = find_path(filename = user_app.name)
-                            
-                            if path:
-                                if len(list_apps) == 1: 
-                                    run_voice(f"Знайшла {user_app.name}")
-
-                                if "відкрий" in text.lower():
-                                    self.open_app(path_app=path)
-                                else: 
-                                    self.close_app(app_name=os.path.basename(user_app.path))
-                                
-                                user_app.path = path
-                                user_app.save()
-                            else:
-                                if len(list_apps) == 1: 
-                                    run_voice("Я не знайшла шлях до цієї програми") 
-                else:
-                    run_voice("Я не знайшла такої програми")    
-
-            self.stdout.write(list_apps)
-
-    def help(self):
-        self.stdout.write("assistant help")
-        self.run = False
-
-    def close_app(self, app_name: str):
-        try:
-            self.stdout.write("close apppppp", app_name)
-            # Получение ос
-            system = platform.system()
-
-            if system == "Windows":
-                # Завершает внешнюю програму из кода
-                # subprocess.run(
-                #     args=["taskkill", "/IM", app_name, "/F"],
-                #     stdout=subprocess.DEVNULL,
-                #     stderr=subprocess.DEVNULL
-                # )
-
-                result = subprocess.run(
-                    args=["taskkill", "/F", "/IM", "chrome.exe", "/T"],
-                    capture_output=True,  # Захватываем вывод, чтобы прочитать ошибку
-                    text=True,
-                )
-
-                # self.stdout.write("Код возврата:", result.returncode)
-                # self.stdout.write("Вывод (stdout):", result.stdout)
-                # self.stdout.write("Ошибки (stderr):", result.stderr)
-            else: 
-                subprocess.run(args= ["pkill", app_name])
-
-        except Exception as error:
-            self.stdout.write(self.style.WARNING(f"Помилка закриття: {error}"))
-            
-    def open_app(self, path_app: str):
-        try:
-            self.stdout.write("path_app", path_app)
-            # Получение ос
-            system = platform.system()
-
-            if system == "Windows":
-                os.startfile(filepath=path_app)
-            elif system == "Darwin":
-                subprocess.Popen(args = ["open", path_app])
-            else:
-                subprocess.Popen(args=[path_app])
-
-        except Exception as error:
-            self.stdout.write(self.style.WARNING(f"Помилка запуску: {error}"))
-
-    def add_arguments(self, parser):
-            parser.add_argument(
-                "command",
-                nargs="*",
-                type=str
-            )
+                self.write(f"Помилка!\n{error}")
 
     def audio_callback(self, indata, frames, time, status):
-            self.audio_queue.put(indata.copy())
+        if status:
+            self.write(str(status))
+
+        self.audio_queue.put(indata.copy())
+
+    def success(self, txt):
+        self.stdout.write(self.style.SUCCESS(txt))
+
+    def write(self, txt):
+        self.stdout.write(txt)
 
     def listen(self):
-            buffer = []
 
-            with sd.InputStream(samplerate=16000, channels=1, callback=self.audio_callback):
-                while self.run:
-                    data = self.audio_queue.get()
+        buffer = []
+
+        silence_chunks = 0
+
+        silence_limit = 50
+
+        speaking = False
+
+        with sd.InputStream(
+            samplerate=16000,
+            channels=1,
+            dtype="float32",
+            blocksize=320,
+            callback=self.audio_callback
+        ):
+
+            while self.run:
+
+                data = self.audio_queue.get()
+
+                volume = np.sqrt(np.mean(data ** 2))
+
+                is_speech = volume > 0.01
+
+                if is_speech:
+                    speaking = True
+                    silence_chunks = 0
                     buffer.append(data)
 
+                elif speaking:
+                    buffer.append(data)
+                    silence_chunks += 1
 
-                    if len(buffer) > 20:
-                        audio = np.concatenate(buffer, axis=0).flatten()
+                    if silence_chunks >= silence_limit:
+
+                        audio = np.concatenate(
+                            buffer,
+                            axis=0
+                        ).flatten()
 
                         segments, _ = self.whisper.transcribe(
                             audio,
                             language="ru",
-                            vad_filter=True
+                            beam_size=5,
+                            temperature=0,
+                            vad_filter=False
                         )
 
-                        for segment in segments:
-                            text = segment.text.strip()
-                            if text:
-                                return text
+                        text = " ".join(
+                            segment.text.strip()
+                            for segment in segments
+                            if segment.text.strip()
+                        )
 
                         buffer = []
-    
+                        silence_chunks = 0
+                        speaking = False
+
+                        return text
