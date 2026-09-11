@@ -1,9 +1,14 @@
-from app import AssisnantApp
+import PyQt6 as qt, sys
+from PyQt6.QtWidgets import QApplication
 
-print(1)
+from app import MainWindow
+
 def main():
-    app = AssisnantApp()
-    app.mainloop()
+    app = QApplication(sys.argv)
+    win = MainWindow()
+    win.show()
+
+    sys.exit(app.exec())
     
 if __name__ == "__main__":
     main()
