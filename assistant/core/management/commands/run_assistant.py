@@ -20,79 +20,143 @@ from core.models import *
 
 
 class Command(BaseCommand):
+    # def __init__(self):
+    #     super().__init__()
+
+    #     self.audio_queue = queue.Queue()
+    #     self.run = True
+
+    #     self.whisper = WhisperModel(
+    #         "large-v3",
+    #         device="cpu",
+    #         compute_type="int8"
+    #     )
+
     def __init__(self):
         super().__init__()
+
+        print("COMMAND INIT", flush=True)
 
         self.audio_queue = queue.Queue()
         self.run = True
 
-        if gpu.is_available():
-            print(0)
-            print(self.style.SUCCESS("Асистент запущений..."))
+        print("LOADING WHISPER...", flush=True)
+
+        self.whisper = WhisperModel(
+            "large-v3",
+            device="cpu",
+            compute_type="int8"
+        )
+
+        print("WHISPER LOADED", flush=True)
+
+        # if gpu.is_available():
+        #     print(0)
+        #     print(self.style.SUCCESS("Асистент запущений..."))
             
-            self.whisper = WhisperModel(
-                "large-v3",
-                device="cpu",
-                compute_type="int8"
-            )
-        else:
-            print(1)
-            print(self.style.SUCCESS("Асистент запущений..."))
+        #     self.whisper = WhisperModel(
+        #         "large-v3",
+        #         device="cpu",
+        #         compute_type="int8"
+        #     )
+        # else:
+        #     print(1)
+        #     print(self.style.SUCCESS("Асистент запущений..."))
 
-            # Инициализация класса для распознавания голоса
-            recognizer = speech_recognition.Recognizer()
-            # Считываем микро
-            microphone = speech_recognition.Microphone()
+        #     # Инициализация класса для распознавания голоса
+        #     recognizer = speech_recognition.Recognizer()
+        #     # Считываем микро
+        #     microphone = speech_recognition.Microphone()
 
-            # Получение голоса в source
-            with microphone as source:
-                print("Почекайте, налаштовую фоновий шум...")
+        #     # Получение голоса в source
+        #     with microphone as source:
+        #         print("Почекайте, налаштовую фоновий шум...")
 
-                # Убираем фоновый шум
-                recognizer.adjust_for_ambient_noise(source=source)
-                print(self.style.SUCCESS("Слухаю вас..."))
+        #         # Убираем фоновый шум
+        #         recognizer.adjust_for_ambient_noise(source=source)
+        #         print(self.style.SUCCESS("Слухаю вас..."))
 
-                while self.run:
-                    try:
-                        # 5 сек записи голоса
-                        audio = recognizer.listen(source=source, phrase_time_limit=3)
+        #         while self.run:
+        #             try:
+        #                 # 5 сек записи голоса
+        #                 audio = recognizer.listen(source=source, phrase_time_limit=3)
 
-                        # audio в текст на uk-UA
-                        text = recognizer.recognize_google(audio, language="uk-UA")
+        #                 # audio в текст на uk-UA
+        #                 text = recognizer.recognize_google(audio, language="uk-UA")
 
-                        self.doing_task(text=text)
-                    except speech_recognition.UnknownValueError:
-                        continue
-                    except Exception as error:
-                        print(self.style.WARNING(f"Помилка!\n{error}"))
+        #                 self.doing_task(text=text)
+        #             except speech_recognition.UnknownValueError:
+        #                 continue
+        #             except Exception as error:
+        #                 print(self.style.WARNING(f"Помилка!\n{error}"))
+
+    # def handle(self, *args, **kwargs):
+    #     print(self.style.SUCCESS("Асистент запущений..."))
+    #     print(self.style.SUCCESS("Слухаю вас..."))
+
+    #     command = kwargs.get("command")
+
+    #     if command and command[0] == "help":
+    #         self.help()
+    #         return
+        
+    #     while self.run:
+    #         try:
+    #             text = self.listen()
+
+    #             if text:
+    #                 self.doing_task(text)
+
+    #         except KeyboardInterrupt:
+    #             self.run = False
+
+    #         except Exception as error:
+    #             print(self.style.WARNING(f"Помилка!\n{error}"))
+
+    # def audio_callback(self, indata, frames, time, status):
+    #     if status:
+    #         print(status)
+
+    #     self.audio_queue.put(indata.copy())
+
 
     def handle(self, *args, **kwargs):
-        print(self.style.SUCCESS("Асистент запущений..."))
-        print(self.style.SUCCESS("Слухаю вас..."))
+        print("HANDLE START", flush=True)
 
-        if len(kwargs.get("command")) and kwargs.get("command")[0] == "help":
-            self.help()
-            return
-        
+        print(
+            self.style.SUCCESS("Асистент запущений..."),
+            flush=True
+        )
+
+        print(
+            self.style.SUCCESS("Слухаю вас..."),
+            flush=True
+        )
+
+        command = kwargs.get("command")
+
+        print("COMMAND:", command, flush=True)
+
         while self.run:
+            print("BEFORE LISTEN", flush=True)
 
             try:
                 text = self.listen()
+
+                print("AFTER LISTEN:", repr(text), flush=True)
 
                 if text:
                     self.doing_task(text)
 
             except KeyboardInterrupt:
+                print("KeyboardInterrupt", flush=True)
                 self.run = False
 
             except Exception as error:
-                print(self.style.WARNING(f"Помилка!\n{error}"))
-
-    def audio_callback(self, indata, frames, time, status):
-        if status:
-            print(status)
-
-        self.audio_queue.put(indata.copy())
+                print(
+                    f"ОШИБКА: {error}",
+                    flush=True
+                )
 
     def listen(self):
 
@@ -157,6 +221,10 @@ class Command(BaseCommand):
             self.run = False
             return
 
+        if "додати команду" in text_lower or "додай команду" in text_lower:
+            self.create_command_by_voice()
+            return
+
         action = self.get_action(text)
 
         if not action:
@@ -210,8 +278,59 @@ class Command(BaseCommand):
                 run_voice(f"Я не знаю шлях до {user_app.name}")
 
     def help(self):
-        print("assistant help")
+        self.stdout.write("Список можливих дій: \n\n • Додати команду \n • Закрий 'Назва додатку'\n • Відкрий 'Назва додатку'\n • Відкрий/Закрий групу 'Назва групи'\n • Відкрий сайт 'Назва сайту'\n • Збільшити гучність \n • Зменшити гучність \n • Зупинись \n\nСписок додатків: ")
+
+        for app_command in AppCommand.objects.all():
+            self.stdout.write(f" • Ключове слово - {app_command.keyword}, Назва додатку - {app_command.name}")
+        self.stdout.write("\nГолосові запити:")
+        for voice_answer in VoiceAnswer.objects.all():
+            self.stdout.write(f' • {voice_answer.request}')
+        self.stdout.write("\nСписок сайтів:")
+        for site in WebSite.objects.all():
+            self.stdout.write(f' • {site.name}, url - {site.url}')
+
         self.run = False
+
+    def create_command_by_voice(self):
+        run_voice("Як називається програма?")
+
+        name = self.listen()
+
+        if not name:
+            run_voice("Я не почула назву програми")
+            return
+
+        name = self.normalize_text(name)
+
+        run_voice(f"Шукаю програму {name}")
+
+        path = find_path(filename=name)
+
+        if not path:
+            run_voice(f"Я не знайшла програму {name}")
+            return
+
+        run_voice(
+            f"Знайшла {name}. Яке ключове слово використовувати для запуску?"
+        )
+
+        keyword = self.listen()
+
+        if not keyword:
+            run_voice("Я не почула ключове слово")
+            return
+
+        keyword = self.normalize_text(keyword)
+
+        command = AppCommand.objects.create(
+            name=name,
+            keyword=keyword,
+            path=path
+        )
+
+        run_voice(
+            f"Команду для {command.name} успішно додано"
+        )
 
     def close_app(self, app_name: str):
         try:
@@ -327,6 +446,12 @@ class Command(BaseCommand):
             return best_command
 
         return None
+
+    def audio_callback(self, indata, frames, time, status):
+        if status:
+            print(f"AUDIO STATUS: {status}", flush=True)
+
+        self.audio_queue.put(indata.copy())
 
     def normalize_text(self, text):
         return " ".join(text.lower().strip().split())
