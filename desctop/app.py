@@ -13,6 +13,9 @@ class SettingsWindow(QWidget):
         self.setWindowTitle("Settings")
         self.setFixedSize(400, 500)
 
+        self.win = win
+        self.lay = QVBoxLayout()
+
         self.voice = QComboBox()
         self.voice.addItems(["Alex", "Victoria"])
 
@@ -21,6 +24,7 @@ class SettingsWindow(QWidget):
 
     def closeEvent(self, event):
         self.deleteLater()
+        self.win.settings = None
         event.accept()
 
 
@@ -29,23 +33,33 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.assistant_process = None
+        self.settings = None
 
         self.setWindowTitle("Intelligent Voice Assistant")
-        self.setMinimumSize(1600, 900)
+        self.setMinimumSize(1000, 700)
+        self.setStyleSheet("background: white;")
+
+        menubar = QMenuBar()
+        menu = menubar.addMenu("Assistant")
+        settings_act = menu.addAction("Settings")
+        settings_act.triggered.connect(self.open_settings)
 
         self.center = QWidget()
         self.setCentralWidget(self.center)
 
         self.main_layout = QHBoxLayout(self.center)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.setMenuWidget(menubar)
 
         self.create_chat()
         self.create_commands()
 
     def create_chat(self):
         # Chat
-        self.messages_frame_back = QFrame()
+        self.messages_frame_back = QFrame(self)
         self.messages_frame_back.setFrameShape(QFrame.Shape.StyledPanel)
-        self.messages_frame_back.setFixedWidth(1300)
+        self.messages_frame_back.setGeometry(0, 0, self.width() - 300, self.height())
 
         # Даём back-фрейму layout, чтобы центрировать всё внутри него
         self.messages_frame_back_layout = QVBoxLayout(self.messages_frame_back)
@@ -53,7 +67,7 @@ class MainWindow(QMainWindow):
 
         self.messages_frame = QFrame()
         self.messages_frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.messages_frame.setFixedWidth(700)  # ширина "колонки чата"
+        self.messages_frame.setFixedWidth(self.width() - 300)  # ширина "колонки чата"
 
         self.messages_layout = QVBoxLayout(self.messages_frame)
 
@@ -146,9 +160,9 @@ class MainWindow(QMainWindow):
     def create_commands(self):
 
         # Commands
-        self.commands_frame = QFrame()
+        self.commands_frame = QFrame(self)
         self.commands_frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.commands_frame.setFixedWidth(300)
+        self.commands_frame.setGeometry(self.width() - 300, 0, 300, self.height())
 
     
         self.commands_layout = QVBoxLayout(self.commands_frame)
@@ -178,11 +192,9 @@ class MainWindow(QMainWindow):
         self.commands_layout.addWidget(self.stop_btn)
         self.commands_layout.addWidget(self.restart_btn)
 
-        print(type(self.messages_frame_back), type(self.commands_frame))
-        self.main_layout.addWidget(self.messages_frame_back)
-        self.main_layout.addWidget(self.commands_frame)
-
-        self.main_layout.addStretch()
+    def open_settings(self):
+        self.settings = SettingsWindow(self)
+        self.settings.show()
         
     def start_assintant(self):
         print("start_assintant")
@@ -237,3 +249,15 @@ class MainWindow(QMainWindow):
 
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+
+        self.messages_frame_back.setGeometry(0, 0, self.width() - 300, self.height())
+        self.messages_frame.setFixedWidth(self.width() - 300)
+        self.commands_frame.setGeometry(self.width() - 300, 0, 300, self.height())
+
+    def closeEvent(self, e):
+        self.deleteLater()
+        if self.settings: self.settings.close()
+        e.accept()
