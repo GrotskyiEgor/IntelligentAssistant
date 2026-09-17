@@ -245,12 +245,10 @@ class MainWindow(QMainWindow):
         if not text:
             return
 
-        # Показываем сообщение пользователя
         self.add_message("Вы", text)
 
-        # Отправляем текст ассистенту
         if self.assistant_process is None:
-            self.add_message("Система", "Ассистент не запущен.")
+            self.add_message("Ассистент", "Я не запущен.")
             return
 
         self.assistant_process.write(
