@@ -1,4 +1,12 @@
-import edge_tts, pygame, asyncio, time, threading, os
+import os
+import edge_tts
+import asyncio
+import time
+import threading
+
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
+
+import pygame
 
 VOICE = "uk-UA-PolinaNeural"
 pygame.init()
@@ -34,6 +42,7 @@ def voicing_text(text: str):
         os.remove(file_name)
 
 def run_voice(text: str):
-    # новый поток для создания и проигрвывания аудио
+    # новый поток для создания и проигрвывания 
+    print(f"Відповідь голосом: {text}", flush=True)
     voicing_thead = threading.Thread(target=voicing_text, args=(text, ), daemon=True)
     voicing_thead.start()

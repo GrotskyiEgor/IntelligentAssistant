@@ -68,10 +68,10 @@ class SettingsWindow(QWidget):
         }
         """)
 
-        background_layout = QHBoxLayout()
-        background_layout.addWidget(QLabel("Work in background"))
-        background_layout.addStretch()
-        background_layout.addWidget(self.background)
+        # background_layout = QHBoxLayout()
+        # background_layout.addWidget(QLabel("Work in background"))
+        # background_layout.addStretch()
+        # background_layout.addWidget(self.background)
 
         self.lay.addWidget(self.header)
         self.lay.addSpacing(20)
@@ -85,7 +85,7 @@ class SettingsWindow(QWidget):
         self.lay.addWidget(self.voice)
 
         self.lay.addSpacing(10)
-        self.lay.addLayout(background_layout)
+        # self.lay.addLayout(background_layout)
 
         self.setLayout(self.lay)
         self.load_settings()
@@ -142,6 +142,8 @@ class MainWindow(QMainWindow):
         exit_act.triggered.connect(self.close)
 
         self.center = QWidget()
+        self.center.setObjectName("centralBg")
+        self.center.setStyleSheet("QWidget#centralBg { background: white; }")
         self.setCentralWidget(self.center)
 
         self.main_layout = QHBoxLayout(self.center)
@@ -153,29 +155,23 @@ class MainWindow(QMainWindow):
         self.create_commands()
 
     def create_chat(self):
-        # Chat
-        self.messages_frame_back = QFrame(self)
+        self.messages_frame_back = QFrame()
         self.messages_frame_back.setFrameShape(QFrame.Shape.StyledPanel)
-        self.messages_frame_back.setGeometry(0, 25, self.width() - 300, self.height() - 25)
+        self.messages_frame_back.setFixedWidth(1300)
 
-        # Даём back-фрейму layout, чтобы центрировать всё внутри него
         self.messages_frame_back_layout = QVBoxLayout(self.messages_frame_back)
         self.messages_frame_back_layout.setContentsMargins(0, 0, 0, 0)
 
         self.messages_frame = QFrame()
         self.messages_frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.messages_frame.setFixedWidth(self.width() - 300)  # ширина "колонки чата"
+        self.messages_frame.setFixedWidth(700)
 
         self.messages_layout = QVBoxLayout(self.messages_frame)
 
         self.title = QLabel("Messages")
-        self.title.setStyleSheet("""
-            font-size: 24px;
-            font-weight: bold;
-        """)
+        self.title.setStyleSheet("font-size: 24px; font-weight: bold;")
         self.messages_layout.addWidget(self.title)
 
-        # Область сообщений
         self.messages_area = QScrollArea()
         self.messages_area.setWidgetResizable(True)
         self.messages_area.setFrameShape(QFrame.Shape.NoFrame)
@@ -187,11 +183,9 @@ class MainWindow(QMainWindow):
         self.messages_area.setWidget(messages_container)
         self.messages_layout.addWidget(self.messages_area)
 
-        # Поле ввода
         self.create_input()
         self.messages_layout.addWidget(self.input_frame)
 
-        # Кладём messages_frame по центру back-фрейма
         self.messages_frame_back_layout.addWidget(
             self.messages_frame, alignment=Qt.AlignmentFlag.AlignHCenter
         )
@@ -283,13 +277,10 @@ class MainWindow(QMainWindow):
         )
 
     def create_commands(self):
-
-        # Commands
-        self.commands_frame = QFrame(self)
+        self.commands_frame = QFrame()
         self.commands_frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.commands_frame.setGeometry(self.width() - 300, 25, 300, self.height() - 25)
+        self.commands_frame.setFixedWidth(300)
 
-    
         self.commands_layout = QVBoxLayout(self.commands_frame)
         self.commands_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
         self.commands_layout.setSpacing(15)
@@ -311,18 +302,21 @@ class MainWindow(QMainWindow):
 
         self.commands_label = QLabel("Керування асистентом")
         self.commands_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            
+
         self.commands_layout.addWidget(self.commands_label)
         self.commands_layout.addWidget(self.start_btn)
         self.commands_layout.addWidget(self.stop_btn)
         self.commands_layout.addWidget(self.restart_btn)
+
+        self.main_layout.addWidget(self.messages_frame_back)
+        self.main_layout.addWidget(self.commands_frame)
+        self.main_layout.addStretch()
 
     def open_settings(self):
         self.settings = SettingsWindow(self)
         self.settings.show()
         
     def start_assintant(self):
-        print("start_assintant")
         if self.assistant_process is not None:
             return
 
@@ -375,6 +369,10 @@ class MainWindow(QMainWindow):
         if self.assistant_process is not None:
             self.assistant_process.kill()
             self.assistant_process.waitForFinished(2000)
+
+        if self.settings:
+            self.settings.close()
+
         event.accept()
         
     def read_output(self):
@@ -390,7 +388,7 @@ class MainWindow(QMainWindow):
             line = line.strip()
 
             if line.startswith("ANSWER:"):
-                answer = line[len("ANSWER:"):].strip()
+                answer = line[len("Відповідь:"):].strip()
 
                 if answer:
                     self.add_message("Асистент", answer)
@@ -403,13 +401,14 @@ class MainWindow(QMainWindow):
             print("ERROR:", text, end="")
 
     def assistant_fineshed(self):
-        print("assistant_fineshed")
+        print("Помічник завершив роботу.")
 
         self.assistant_process.deleteLater()
         self.assistant_process = None
 
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
+        self.restart_btn.setEnabled(False)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

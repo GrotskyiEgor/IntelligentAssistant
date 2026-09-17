@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import queue
 import platform
 import subprocess
@@ -8,6 +9,9 @@ import threading
 
 import numpy as np
 import sounddevice as sd
+
+from pathlib import Path
+
 
 from torch import cuda as gpu
 from faster_whisper import WhisperModel
@@ -20,11 +24,18 @@ from utils.voicing_answer import run_voice
 from core.models import *
 
 
+
+COMMANDS_JSON_PATH = Path(__file__).resolve().parent.parent.parent.parent / "utils" / "commands.json"
+
+
 class Command(BaseCommand):
     def __init__(self):
         super().__init__()
 
-        print("Inteligen Assistatnt", flush=True)
+        with open(COMMANDS_JSON_PATH, "r", encoding="utf-8") as file:
+            self.commands_map = json.load(file)
+
+        print("Інтелектуальний помічник", flush=True)
 
         self.run = True
         self.audio_queue = queue.Queue()
@@ -36,7 +47,7 @@ class Command(BaseCommand):
         self.stdin_thread.start()
 
         if gpu.is_available():
-            print("GPU знайдено, використовую whisper", flush=True)
+            # print("Графічний процесор знайдено використовую whisper", flush=True)
 
             self.use_whisper = True
             self.whisper = WhisperModel(
@@ -46,14 +57,14 @@ class Command(BaseCommand):
             )
 
         else:
-            print("GPU не знайдено, використовую google speech", flush=True)
+            # print("Графічний процесор не знайдено використовуюэ google speech", flush=True)
 
             self.use_whisper = False
 
             self.recognizer = speech_recognition.Recognizer()
             self.microphone = speech_recognition.Microphone()
 
-            print("Почекайте, налаштовую фоновий шум", flush=True)
+            print("Налаштовую фоновий шум", flush=True)
 
             with self.microphone as source:
                 self.recognizer.adjust_for_ambient_noise(source=source)
@@ -69,7 +80,7 @@ class Command(BaseCommand):
                 text = text.strip()
 
                 if text and len(text):
-                    print(f"Text commands: {text}", flush=True)
+                    print(f"Текстові команди: {text}", flush=True)
                     self.doing_task(text)
 
             except Exception as error:
@@ -82,7 +93,7 @@ class Command(BaseCommand):
 
         command = kwargs.get("command")
         if len(command):
-            print("Commands:", command, flush=True)
+            print("Команди:", command, flush=True)
 
         while self.run:
             try:
@@ -185,89 +196,82 @@ class Command(BaseCommand):
 
                         return text
 
-    def audio_callback(self, indata, frames, time, status):
-        if status:
-            print(f"AUDIO STATUS: {status}", flush=True)
-
-        self.audio_queue.put(indata.copy())
-
     def doing_task(self, text):
-        text_lower = text.lower()
+        text_lower = self.normalize_text(text)
 
-        if "допомога" in text_lower:
+        action, matched_word = self.get_action(text_lower)
+
+        if not action:
+            print("Дію не визначено")
+            return
+
+        print(f"Дія: {action}, знайдено: {matched_word}")
+
+        if action == "help":
             self.help()
             return
 
-        if "зупинись" in text_lower:
+        if action == "stop":
             self.run = False
             return
 
-        if "додати команду" in text_lower or "додай команду" in text_lower:
+        if action == "add_command":
             self.create_command_by_voice()
             return
 
-        action = self.get_action(text)
-
-        if not action:
+        if action == "greeting":
+            run_voice("Привіт, чим можу допомогти?")
             return
 
-        app_text = text_lower
+        if action in ("open", "close"):
+            app_text = text_lower.replace(matched_word, "", 1).strip()
 
-        command_words = ["відкрий", "відкрити", "запусти", "запустити", "відкривай", "закрий", "закрити", "закривай", "вимкни", "вимкнути"]
+            if not app_text:
+                run_voice("Не вказано назву програми")
+                return
 
-        for word in command_words:
-            app_text = app_text.replace(word, "")
+            print(f"Програма: {app_text}")
 
-        app_text = app_text.strip()
-        print(f"Дія {action}, програма {app_text}")
-        user_app = self.find_app(app_text)
+            user_app = self.find_app(app_text)
 
-        if not user_app:
-            run_voice(f"Я не знайшла програму {app_text}")
-            return
+            if not user_app:
+                run_voice(f"Я не знайшла програму {app_text}")
+                return
 
-        print(self.style.SUCCESS(f"Знайдено: {user_app.name}"))
+            print(self.style.SUCCESS(f"Знайдено: {user_app.name}"))
 
-        if action == "open":
-            run_voice(f"Відкриваю {user_app.name}")
+            if action == "open":
+                run_voice(f"Відкриваю {user_app.name}")
 
-            if user_app.path:
-                self.open_app(path_app=user_app.path)
-            else:
-                run_voice(f"Шукаю {user_app.name}")
-                path = find_path(filename=user_app.name)
-
-                if path:
-                    run_voice(f"Знайшла {user_app.name}")
-                    self.open_app(path_app=path)
-
-                    user_app.path = path
-                    user_app.save()
+                if user_app.path:
+                    self.open_app(path_app=user_app.path)
                 else:
-                    run_voice(f"Я не знайшла шлях до {user_app.name}")
+                    run_voice(f"Шукаю {user_app.name}")
 
-        elif action == "close":
-            run_voice(f"Закриваю {user_app.name}")
+                    path = find_path(filename=user_app.name)
 
-            if user_app.path:
-                app_name = os.path.basename(user_app.path)
-                self.close_app(app_name=app_name)
-            else:
-                run_voice(f"Я не знаю шлях до {user_app.name}")
+                    if path:
+                        run_voice(f"Знайшла {user_app.name}")
 
-    def help(self):
-        self.stdout.write("Список можливих дій: \n\n • Додати команду \n • Закрий 'Назва додатку'\n • Відкрий 'Назва додатку'\n • Відкрий/Закрий групу 'Назва групи'\n • Відкрий сайт 'Назва сайту'\n • Збільшити гучність \n • Зменшити гучність \n • Зупинись \n\nСписок додатків: ")
+                        self.open_app(path_app=path)
 
-        for app_command in AppCommand.objects.all():
-            self.stdout.write(f" • Ключове слово - {app_command.keyword}, Назва додатку - {app_command.name}")
-        self.stdout.write("\nГолосові запити:")
-        for voice_answer in VoiceAnswer.objects.all():
-            self.stdout.write(f' • {voice_answer.request}')
-        self.stdout.write("\nСписок сайтів:")
-        for site in WebSite.objects.all():
-            self.stdout.write(f' • {site.name}, url - {site.url}')
+                        user_app.path = path
+                        user_app.save()
+                    else:
+                        run_voice(
+                            f"Я не знайшла шлях до {user_app.name}"
+                        )
 
-        self.run = False
+            elif action == "close":
+                run_voice(f"Закриваю {user_app.name}")
+
+                if user_app.path:
+                    app_name = os.path.basename(user_app.path)
+                    self.close_app(app_name=app_name)
+                else:
+                    run_voice(
+                        f"Я не знаю шлях до {user_app.name}"
+                    )
 
     def create_command_by_voice(self):
         run_voice("Як називається програма?")
@@ -347,24 +351,76 @@ class Command(BaseCommand):
         except Exception as error:
             print(self.style.WARNING(f"Помилка запуску: {error}"))
 
+    def match_phrase(self, text, action_key):
+        text = self.normalize_text(text)
+        phrases = self.commands_map.get(action_key, [])
+
+        for phrase in phrases:
+            phrase_norm = self.normalize_text(phrase)
+
+            if " " in phrase_norm:
+                score = fuzz.partial_ratio(phrase_norm, text)
+
+                if score >= 80:
+                    return True
+
+            else:
+                for word in text.split():
+                    score = fuzz.ratio(word, phrase_norm)
+
+                    if score >= 80:
+                        return True
+
+        return False
+
     def get_action(self, text):
         text = self.normalize_text(text)
 
-        open_commands = ["відкрий", "відкрити", "запусти", "запустити", "відкривай"]
-        close_commands = ["закрий", "закрити", "закривай", "вимкни", "вимкнути"]
+        best_matches = []
 
-        words = text.split()
+        for action_key, phrases in self.commands_map.items():
+            best_score = 0
+            best_word = None
 
-        for word in words:
-            result = process.extractOne(word, open_commands, scorer=fuzz.ratio)
-            if result and result[1] >= 70:
-                return "open"
+            for phrase in phrases:
+                phrase_norm = self.normalize_text(phrase)
 
-            result = process.extractOne(word, close_commands, scorer=fuzz.ratio)
-            if result and result[1] >= 70:
-                return "close"
+                if " " in phrase_norm:
+                    score = fuzz.partial_ratio(phrase_norm, text)
 
-        return None
+                    if score > best_score:
+                        best_score = score
+                        best_word = phrase
+
+                else:
+                    for word in text.split():
+                        score = fuzz.ratio(word, phrase_norm)
+
+                        if score > best_score:
+                            best_score = score
+                            best_word = word
+
+            if best_score >= 80:
+                best_matches.append(
+                    (action_key, best_score, best_word)
+                )
+
+        if not best_matches:
+            return None, None
+
+        best_matches.sort(key=lambda x: x[1], reverse=True)
+        best_action, best_score, best_word = best_matches[0]
+
+        if len(best_matches) > 1:
+            second_action, second_score, _ = best_matches[1]
+
+            if (
+                second_action != best_action
+                and best_score - second_score < 5
+            ):
+                return None, None
+
+        return best_action, best_word
 
     def find_app(self, text):
         commands = AppCommand.objects.all()
@@ -398,3 +454,23 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("command", nargs="*", type=str)
+
+    def audio_callback(self, indata, frames, time, status):
+        if status:
+            print(f"Стан аудио: {status}", flush=True)
+
+        self.audio_queue.put(indata.copy())
+        
+    def help(self):
+        self.stdout.write("Список можливих дій: \n\n • Додати команду \n • Закрий 'Назва додатку'\n • Відкрий 'Назва додатку'\n • Відкрий/Закрий групу 'Назва групи'\n • Відкрий сайт 'Назва сайту'\n • Збільшити гучність \n • Зменшити гучність \n • Зупинись \n\nСписок додатків: ")
+
+        for app_command in AppCommand.objects.all():
+            self.stdout.write(f" • Ключове слово - {app_command.keyword}, Назва додатку - {app_command.name}")
+        self.stdout.write("\nГолосові запити:")
+        for voice_answer in VoiceAnswer.objects.all():
+            self.stdout.write(f' • {voice_answer.request}')
+        self.stdout.write("\nСписок сайтів:")
+        for site in WebSite.objects.all():
+            self.stdout.write(f' • {site.name}, url - {site.url}')
+
+        self.run = False
