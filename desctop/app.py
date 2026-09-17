@@ -2,7 +2,7 @@ import sys
 import os, subprocess
 import PyQt6 as qt
 
-from PyQt6.QtCore import QProcess
+from PyQt6.QtCore import QProcess, QProcessEnvironment
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt
 
@@ -136,12 +136,40 @@ class MainWindow(QMainWindow):
 
     def send_message(self):
         text = self.message_input.text().strip()
+
         if not text:
             return
-        
-        # тут добавляйте сообщение в messages_container_layout
-        print("send:", text)
+
+        # Показываем сообщение пользователя
+        self.add_message("Вы", text)
+
+        # Отправляем текст ассистенту
+        if self.assistant_process is None:
+            self.add_message("Система", "Ассистент не запущен.")
+            return
+
+        self.assistant_process.write(
+            (text + "\n").encode("utf-8")
+        )
+        self.assistant_process.waitForBytesWritten(1000)
+
         self.message_input.clear()
+
+    def add_message(self, sender, text):
+        message = QLabel(f"<b>{sender}:</b> {text}")
+        message.setWordWrap(True)
+        message.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+
+        self.messages_container_layout.insertWidget(
+            self.messages_container_layout.count() - 1,
+            message
+        )
+
+        self.messages_area.verticalScrollBar().setValue(
+            self.messages_area.verticalScrollBar().maximum()
+        )
 
     def create_commands(self):
 
@@ -191,9 +219,14 @@ class MainWindow(QMainWindow):
 
         self.assistant_process = QProcess(self)
 
+        env = QProcessEnvironment.systemEnvironment()
+        env.insert("PYTHONIOENCODING", "utf-8")
+        self.assistant_process.setProcessEnvironment(env)
+
         self.assistant_process.readyReadStandardOutput.connect(self.read_output)
         self.assistant_process.readyReadStandardError.connect(self.read_output)
         self.assistant_process.finished.connect(self.assistant_fineshed)
+        self.assistant_process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
 
         python = sys.executable
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -203,31 +236,62 @@ class MainWindow(QMainWindow):
 
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
+        self.restart_btn.setEnabled(True)
+
+    def stop_assintant(self, on_stopped=None):
+        process = self.assistant_process
+        if process is None:
+            if on_stopped:
+                on_stopped()
+            return
+
+        def _handle_finished():
+            process.finished.disconnect(_handle_finished)
+            if on_stopped:
+                on_stopped()
+
+        process.finished.connect(_handle_finished)
+        process.kill()
 
     def restart_assintant(self):
-        print("restart_assintant")
-
-        self.start_btn.setEnabled(False)
-        self.stop_btn.setEnabled(True)
-
-    def stop_assintant(self):
-        print("stop_assintant")
         if self.assistant_process is None:
+            self.start_assintant()
             return
-        
-        self.assistant_process.terminate()
 
-        if not self.assistant_process.waitForFinished(3000):
+        self.restart_btn.setEnabled(False)
+        self.stop_assintant(on_stopped=self.start_assintant)
+
+
+    def closeEvent(self, event):
+        if self.assistant_process is not None:
             self.assistant_process.kill()
-
-        self.start_btn.setEnabled(True)
-        self.stop_btn.setEnabled(False)
+            self.assistant_process.waitForFinished(2000)
+        event.accept()
         
     def read_output(self):
-        self.assistant_process.readAllStandardOutput()
+        data = self.assistant_process.readAllStandardOutput()
+        text = bytes(data).decode("utf-8", errors="replace")
+
+        if not text:
+            return
+
+        print(text, end="")
+
+        for line in text.splitlines():
+            line = line.strip()
+
+            if line.startswith("ANSWER:"):
+                answer = line[len("ANSWER:"):].strip()
+
+                if answer:
+                    self.add_message("Асистент", answer)
 
     def read_error(self):
-        self.assistant_process.readAllStandardError()
+        data = self.assistant_process.readAllStandardError()
+        text = bytes(data).decode("utf-8", errors="replace")
+
+        if text:
+            print("ERROR:", text, end="")
 
     def assistant_fineshed(self):
         print("assistant_fineshed")

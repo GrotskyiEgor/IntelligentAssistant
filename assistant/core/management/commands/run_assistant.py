@@ -1,8 +1,10 @@
 import os
+import sys
 import queue
 import platform
 import subprocess
 import speech_recognition
+import threading
 
 import numpy as np
 import sounddevice as sd
@@ -13,7 +15,6 @@ from faster_whisper import WhisperModel
 from rapidfuzz import fuzz, process
 from django.core.management.base import BaseCommand
 
-
 from utils.find_path import find_path
 from utils.voicing_answer import run_voice
 from core.models import *
@@ -23,79 +24,104 @@ class Command(BaseCommand):
     def __init__(self):
         super().__init__()
 
-        self.audio_queue = queue.Queue()
+        print("Inteligen Assistatnt", flush=True)
+
         self.run = True
+        self.audio_queue = queue.Queue()
+
+        self.stdin_thread = threading.Thread(
+            target=self.read_stdin,
+            daemon=True
+        )
+        self.stdin_thread.start()
 
         if gpu.is_available():
-            print(0)
-            print(self.style.SUCCESS("Асистент запущений..."))
-            
+            print("GPU знайдено, використовую whisper", flush=True)
+
+            self.use_whisper = True
             self.whisper = WhisperModel(
                 "large-v3",
-                device="cpu",
-                compute_type="int8"
+                device="cuda",
+                compute_type="float16"
             )
+
         else:
-            print(1)
-            print(self.style.SUCCESS("Асистент запущений..."))
+            print("GPU не знайдено, використовую google speech", flush=True)
 
-            # Инициализация класса для распознавания голоса
-            recognizer = speech_recognition.Recognizer()
-            # Считываем микро
-            microphone = speech_recognition.Microphone()
+            self.use_whisper = False
 
-            # Получение голоса в source
-            with microphone as source:
-                print("Почекайте, налаштовую фоновий шум...")
+            self.recognizer = speech_recognition.Recognizer()
+            self.microphone = speech_recognition.Microphone()
 
-                # Убираем фоновый шум
-                recognizer.adjust_for_ambient_noise(source=source)
-                print(self.style.SUCCESS("Слухаю вас..."))
+            print("Почекайте, налаштовую фоновий шум", flush=True)
 
-                while self.run:
-                    try:
-                        # 5 сек записи голоса
-                        audio = recognizer.listen(source=source, phrase_time_limit=3)
+            with self.microphone as source:
+                self.recognizer.adjust_for_ambient_noise(source=source)
 
-                        # audio в текст на uk-UA
-                        text = recognizer.recognize_google(audio, language="uk-UA")
+    def read_stdin(self):
+        while self.run:
+            try:
+                text = sys.stdin.readline()
 
-                        self.doing_task(text=text)
-                    except speech_recognition.UnknownValueError:
-                        continue
-                    except Exception as error:
-                        print(self.style.WARNING(f"Помилка!\n{error}"))
+                if not text:
+                    break
+
+                text = text.strip()
+
+                if text and len(text):
+                    print(f"Text commands: {text}", flush=True)
+                    self.doing_task(text)
+
+            except Exception as error:
+                print(f"STDIN ERROR: {error}", flush=True)
+                break
 
     def handle(self, *args, **kwargs):
-        print(self.style.SUCCESS("Асистент запущений..."))
-        print(self.style.SUCCESS("Слухаю вас..."))
+        print("Асистент запущений", flush=True)
+        print("Слухаю вас", flush=True)
 
-        if len(kwargs.get("command")) and kwargs.get("command")[0] == "help":
-            self.help()
-            return
-        
+        command = kwargs.get("command")
+        if len(command):
+            print("Commands:", command, flush=True)
+
         while self.run:
-
             try:
                 text = self.listen()
 
                 if text:
+                    print("Ви сказали:", repr(text), flush=True)
                     self.doing_task(text)
 
             except KeyboardInterrupt:
+                print("KeyboardInterrupt", flush=True)
                 self.run = False
 
             except Exception as error:
-                print(self.style.WARNING(f"Помилка!\n{error}"))
-
-    def audio_callback(self, indata, frames, time, status):
-        if status:
-            print(status)
-
-        self.audio_queue.put(indata.copy())
+                print(f"Помилка: {error}", flush=True)
 
     def listen(self):
+        if self.use_whisper:
+            return self.listen_whisper()
 
+        return self.listen_google()
+
+    def listen_google(self):
+        with self.microphone as source:
+            try:
+                audio = self.recognizer.listen(source=source, phrase_time_limit=5)
+            except Exception as error:
+                print(f"LISTEN ERROR: {error}", flush=True)
+                return None
+
+        try:
+            return self.recognizer.recognize_google(audio, language="uk-UA")
+        except speech_recognition.UnknownValueError:
+            return None
+        except Exception as error:
+            print(f"RECOGNIZE ERROR: {error}", flush=True)
+            return None
+
+    def listen_whisper(self):
         buffer = []
         silence_chunks = 0
         silence_limit = 40
@@ -115,10 +141,8 @@ class Command(BaseCommand):
                 is_speech = volume > 0.01
 
                 if is_speech:
-
                     speaking = True
                     silence_chunks = 0
-
                     buffer.append(data)
 
                 elif speaking:
@@ -130,7 +154,24 @@ class Command(BaseCommand):
                             continue
 
                         audio = np.concatenate(buffer, axis=0).flatten()
-                        segments, info = self.whisper.transcribe( audio, language="uk", beam_size=3, temperature=0, vad_filter=False)
+
+                        duration_sec = len(audio) / 16000
+                        avg_volume = np.sqrt(np.mean(audio ** 2))
+
+                        if duration_sec < 0.4 or avg_volume < 0.015:
+                            buffer = []
+                            silence_chunks = 0
+                            speaking = False
+                            continue
+
+                        segments, info = self.whisper.transcribe(
+                            audio,
+                            language="uk",
+                            beam_size=5,
+                            temperature=0,
+                            vad_filter=True,
+                            vad_parameters=dict(min_silence_duration_ms=300)
+                        )
 
                         text = " ".join(
                             segment.text.strip()
@@ -144,9 +185,13 @@ class Command(BaseCommand):
 
                         return text
 
-    def doing_task(self, text):
-        print(f"Ви сказали: {text}")
+    def audio_callback(self, indata, frames, time, status):
+        if status:
+            print(f"AUDIO STATUS: {status}", flush=True)
 
+        self.audio_queue.put(indata.copy())
+
+    def doing_task(self, text):
         text_lower = text.lower()
 
         if "допомога" in text_lower:
@@ -157,14 +202,17 @@ class Command(BaseCommand):
             self.run = False
             return
 
+        if "додати команду" in text_lower or "додай команду" in text_lower:
+            self.create_command_by_voice()
+            return
+
         action = self.get_action(text)
 
         if not action:
             return
-        
+
         app_text = text_lower
 
-        # 
         command_words = ["відкрий", "відкрити", "запусти", "запустити", "відкривай", "закрий", "закрити", "закривай", "вимкни", "вимкнути"]
 
         for word in command_words:
@@ -179,7 +227,7 @@ class Command(BaseCommand):
             return
 
         print(self.style.SUCCESS(f"Знайдено: {user_app.name}"))
-        
+
         if action == "open":
             run_voice(f"Відкриваю {user_app.name}")
 
@@ -195,7 +243,6 @@ class Command(BaseCommand):
 
                     user_app.path = path
                     user_app.save()
-
                 else:
                     run_voice(f"Я не знайшла шлях до {user_app.name}")
 
@@ -204,14 +251,60 @@ class Command(BaseCommand):
 
             if user_app.path:
                 app_name = os.path.basename(user_app.path)
-
                 self.close_app(app_name=app_name)
             else:
                 run_voice(f"Я не знаю шлях до {user_app.name}")
 
     def help(self):
-        print("assistant help")
+        self.stdout.write("Список можливих дій: \n\n • Додати команду \n • Закрий 'Назва додатку'\n • Відкрий 'Назва додатку'\n • Відкрий/Закрий групу 'Назва групи'\n • Відкрий сайт 'Назва сайту'\n • Збільшити гучність \n • Зменшити гучність \n • Зупинись \n\nСписок додатків: ")
+
+        for app_command in AppCommand.objects.all():
+            self.stdout.write(f" • Ключове слово - {app_command.keyword}, Назва додатку - {app_command.name}")
+        self.stdout.write("\nГолосові запити:")
+        for voice_answer in VoiceAnswer.objects.all():
+            self.stdout.write(f' • {voice_answer.request}')
+        self.stdout.write("\nСписок сайтів:")
+        for site in WebSite.objects.all():
+            self.stdout.write(f' • {site.name}, url - {site.url}')
+
         self.run = False
+
+    def create_command_by_voice(self):
+        run_voice("Як називається програма?")
+
+        name = self.listen()
+
+        if not name:
+            run_voice("Я не почула назву програми")
+            return
+
+        name = self.normalize_text(name)
+
+        run_voice(f"Шукаю програму {name}")
+
+        path = find_path(filename=name)
+
+        if not path:
+            run_voice(f"Я не знайшла програму {name}")
+            return
+
+        run_voice(f"Знайшла {name}. Яке ключове слово використовувати для запуску?")
+
+        keyword = self.listen()
+
+        if not keyword:
+            run_voice("Я не почула ключове слово")
+            return
+
+        keyword = self.normalize_text(keyword)
+
+        command = AppCommand.objects.create(
+            name=name,
+            keyword=keyword,
+            path=path
+        )
+
+        run_voice(f"Команду для {command.name} успішно додано")
 
     def close_app(self, app_name: str):
         try:
@@ -226,32 +319,19 @@ class Command(BaseCommand):
                     errors="replace"
                 )
 
-                # print("TASKKILL:", result.returncode)
-                # print("STDOUT:", result.stdout)
-                # print("STDERR:", result.stderr)
-
                 if result.returncode == 0:
-                    print(self.style.SUCCESS(f"Процес {app_name} успішно закрито"))
+                    print(f"Процес {app_name} успішно закрито")
                 else:
-                    print(self.style.WARNING(f"Не вдалося закрити {app_name}"))
+                    print(f"Не вдалося закрити {app_name}")
 
             elif system == "Darwin":
-                subprocess.run(
-                    ["pkill", "-f", app_name],
-                    capture_output=True,
-                    text=True
-                )
-
+                subprocess.run(["pkill", "-f", app_name], capture_output=True, text=True)
             else:
-                subprocess.run(
-                    ["pkill", "-f", app_name],
-                    capture_output=True,
-                    text=True
-                )
+                subprocess.run(["pkill", "-f", app_name], capture_output=True, text=True)
 
         except Exception as error:
-            print(self.style.WARNING(f"Помилка закриття: {error}"))
-            
+            print(f"Помилка закриття: {error}")
+
     def open_app(self, path_app: str):
         try:
             print("path_app", path_app)
@@ -260,7 +340,7 @@ class Command(BaseCommand):
             if system == "Windows":
                 os.startfile(filepath=path_app)
             elif system == "Darwin":
-                subprocess.Popen(args = ["open", path_app])
+                subprocess.Popen(args=["open", path_app])
             else:
                 subprocess.Popen(args=[path_app])
 
@@ -270,28 +350,17 @@ class Command(BaseCommand):
     def get_action(self, text):
         text = self.normalize_text(text)
 
-        # 
         open_commands = ["відкрий", "відкрити", "запусти", "запустити", "відкривай"]
         close_commands = ["закрий", "закрити", "закривай", "вимкни", "вимкнути"]
 
         words = text.split()
 
         for word in words:
-            result = process.extractOne(
-                word,
-                open_commands,
-                scorer=fuzz.ratio
-            )
-
+            result = process.extractOne(word, open_commands, scorer=fuzz.ratio)
             if result and result[1] >= 70:
                 return "open"
 
-            result = process.extractOne(
-                word,
-                close_commands,
-                scorer=fuzz.ratio
-            )
-
+            result = process.extractOne(word, close_commands, scorer=fuzz.ratio)
             if result and result[1] >= 70:
                 return "close"
 
@@ -313,11 +382,7 @@ class Command(BaseCommand):
             name_score = fuzz.ratio(text, name)
             token_score = fuzz.token_set_ratio(text, keyword)
 
-            score = max(
-                keyword_score,
-                name_score,
-                token_score
-            )
+            score = max(keyword_score, name_score, token_score)
 
             if score > best_score:
                 best_score = score
