@@ -1,5 +1,5 @@
 import sys
-import os, subprocess
+import os, subprocess, json
 import PyQt6 as qt
 
 from PyQt6.QtCore import QProcess, QProcessEnvironment
@@ -12,15 +12,114 @@ class SettingsWindow(QWidget):
         super().__init__()
         self.setWindowTitle("Settings")
         self.setFixedSize(400, 500)
+        self.setStyleSheet("background: white;")
+
+        self.json = "settings.json"
+
+        self.setWindowFlags(Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint | Qt.WindowType.WindowCloseButtonHint)
+
+        self.win = win
+        self.lay = QVBoxLayout()
+        self.lay.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+
+        self.header = QFrame()
+        self.header.lay = QHBoxLayout()
+        self.header.setLayout(self.header.lay)
+
+        title = QLabel("Settings")
+        title.setStyleSheet("font-size: 26px; font-weight: bold;")
+
+        save_btn = QPushButton(text="Save")
+        save_btn.setStyleSheet("font-size: 15px; background: gainsboro;")
+        save_btn.setFixedSize(120, 38)
+        save_btn.clicked.connect(self.close)
+
+        self.header.lay.addWidget(title)
+        self.header.lay.addWidget(save_btn)
+
+        self.name = QLineEdit()
+        self.name.setStyleSheet("font-size: 15px;")
+        self.name.setPlaceholderText("Enter assistant name")
+        self.name.setFixedHeight(38)
 
         self.voice = QComboBox()
+        self.voice.setStyleSheet("font-size: 15px;")
         self.voice.addItems(["Alex", "Victoria"])
+        self.voice.setFixedHeight(38)
+
+        self.background = QCheckBox()
+        self.background.setFixedSize(26, 26)
+
+        self.background.setStyleSheet("""
+        QCheckBox {
+            background: transparent;
+        }
+
+        QCheckBox::indicator {
+            border-radius: 6px;
+        }
+
+        QCheckBox::indicator:checked {
+            background: #333333;
+        }
+
+        QCheckBox::indicator:unchecked {
+            background: #d5d5d5;
+        }
+        """)
+
+        background_layout = QHBoxLayout()
+        background_layout.addWidget(QLabel("Work in background"))
+        background_layout.addStretch()
+        background_layout.addWidget(self.background)
+
+        self.lay.addWidget(self.header)
+        self.lay.addSpacing(20)
+
+        self.lay.addWidget(QLabel("Assistant name:"))
+        self.lay.addWidget(self.name)
+
+        self.lay.addSpacing(10)
 
         self.lay.addWidget(QLabel("Select voice:"))
         self.lay.addWidget(self.voice)
 
+        self.lay.addSpacing(10)
+        self.lay.addLayout(background_layout)
+
+        self.setLayout(self.lay)
+        self.load_settings()
+
+    def load_settings(self):
+        if not os.path.exists(self.json):
+            self.name.setText("Assistant")
+            self.voice.setCurrentText("Alex")
+            return
+
+        with open(self.json, "r", encoding="utf-8") as file:
+            settings = json.load(file)
+
+        self.name.setText(
+            settings.get("name", "Assistant")
+        )
+
+        self.voice.setCurrentText(
+            settings.get("voice", "Alex")
+        )
+
+    def save_settings(self):
+        settings = {
+            "name": self.name.text(),
+            "voice": self.voice.currentText()
+        }
+
+        with open(self.json, "w", encoding="utf-8") as file:
+            json.dump(settings, file, ensure_ascii=False, indent=4)
+
     def closeEvent(self, event):
         self.deleteLater()
+        self.save_settings()
+        self.win.settings = None
         event.accept()
 
 
@@ -29,23 +128,35 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.assistant_process = None
+        self.settings = None
 
         self.setWindowTitle("Intelligent Voice Assistant")
-        self.setMinimumSize(1600, 900)
+        self.setMinimumSize(1000, 700)
+        self.setStyleSheet("background: white;")
+
+        menubar = QMenuBar()
+        menu = menubar.addMenu("Assistant")
+        settings_act = menu.addAction("Settings")
+        settings_act.triggered.connect(self.open_settings)
+        exit_act = menu.addAction("Exit")
+        exit_act.triggered.connect(self.close)
 
         self.center = QWidget()
         self.setCentralWidget(self.center)
 
         self.main_layout = QHBoxLayout(self.center)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.setMenuWidget(menubar)
 
         self.create_chat()
         self.create_commands()
 
     def create_chat(self):
         # Chat
-        self.messages_frame_back = QFrame()
+        self.messages_frame_back = QFrame(self)
         self.messages_frame_back.setFrameShape(QFrame.Shape.StyledPanel)
-        self.messages_frame_back.setFixedWidth(1300)
+        self.messages_frame_back.setGeometry(0, 25, self.width() - 300, self.height() - 25)
 
         # Даём back-фрейму layout, чтобы центрировать всё внутри него
         self.messages_frame_back_layout = QVBoxLayout(self.messages_frame_back)
@@ -53,7 +164,7 @@ class MainWindow(QMainWindow):
 
         self.messages_frame = QFrame()
         self.messages_frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.messages_frame.setFixedWidth(700)  # ширина "колонки чата"
+        self.messages_frame.setFixedWidth(self.width() - 300)  # ширина "колонки чата"
 
         self.messages_layout = QVBoxLayout(self.messages_frame)
 
@@ -121,7 +232,7 @@ class MainWindow(QMainWindow):
             QPushButton {
                 background-color: white;
                 color: black;
-                border-radius: 20px;
+                border-radius: 13px;
                 font-size: 16px;
             }
             QPushButton:hover {
@@ -174,9 +285,9 @@ class MainWindow(QMainWindow):
     def create_commands(self):
 
         # Commands
-        self.commands_frame = QFrame()
+        self.commands_frame = QFrame(self)
         self.commands_frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.commands_frame.setFixedWidth(300)
+        self.commands_frame.setGeometry(self.width() - 300, 25, 300, self.height() - 25)
 
     
         self.commands_layout = QVBoxLayout(self.commands_frame)
@@ -206,11 +317,9 @@ class MainWindow(QMainWindow):
         self.commands_layout.addWidget(self.stop_btn)
         self.commands_layout.addWidget(self.restart_btn)
 
-        print(type(self.messages_frame_back), type(self.commands_frame))
-        self.main_layout.addWidget(self.messages_frame_back)
-        self.main_layout.addWidget(self.commands_frame)
-
-        self.main_layout.addStretch()
+    def open_settings(self):
+        self.settings = SettingsWindow(self)
+        self.settings.show()
         
     def start_assintant(self):
         print("start_assintant")
@@ -301,3 +410,15 @@ class MainWindow(QMainWindow):
 
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+
+        self.messages_frame_back.setGeometry(0, 25, self.width() - 300, self.height() - 25)
+        self.messages_frame.setFixedWidth(self.width() - 300)
+        self.commands_frame.setGeometry(self.width() - 300, 25, 300, self.height() - 25)
+
+    def closeEvent(self, e):
+        self.deleteLater()
+        if self.settings: self.settings.close()
+        e.accept()
