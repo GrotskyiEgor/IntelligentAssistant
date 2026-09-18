@@ -24,7 +24,6 @@ from utils.voicing_answer import run_voice
 from core.models import *
 
 
-
 COMMANDS_JSON_PATH = Path(__file__).resolve().parent.parent.parent.parent / "utils" / "commands.json"
 
 
@@ -119,7 +118,7 @@ class Command(BaseCommand):
     def listen_google(self):
         with self.microphone as source:
             try:
-                audio = self.recognizer.listen(source=source, phrase_time_limit=5)
+                audio = self.recognizer.listen(source=source, phrase_time_limit=7.5)
             except Exception as error:
                 print(f"LISTEN ERROR: {error}", flush=True)
                 return None
