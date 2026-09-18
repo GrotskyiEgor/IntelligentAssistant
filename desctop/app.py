@@ -1,5 +1,4 @@
-import sys
-import os, subprocess, json
+import sys, os, subprocess, json, re
 import PyQt6 as qt
 
 from PyQt6.QtCore import QProcess
@@ -30,7 +29,7 @@ class SettingsWindow(QWidget):
         title.setStyleSheet("font-size: 26px; font-weight: bold;")
 
         save_btn = QPushButton(text="Save")
-        save_btn.setStyleSheet("font-size: 15px; background: gainsboro;")
+        save_btn.setStyleSheet("QPushButton { font-size: 15px; background: gainsboro; border-radius: 6px; } QPushButton:hover { background: #b8b8b8; }")
         save_btn.setFixedSize(120, 38)
         save_btn.clicked.connect(self.close)
 
@@ -38,12 +37,20 @@ class SettingsWindow(QWidget):
         self.header.lay.addWidget(save_btn)
 
         self.name = QLineEdit()
-        self.name.setStyleSheet("font-size: 15px;")
+        self.name.setStyleSheet("font-size: 15px; background: #fafafa; border: 1px solid gainsboro; border-radius: 8px; padding: 0 8px;")
         self.name.setPlaceholderText("Enter assistant name")
         self.name.setFixedHeight(38)
 
         self.voice = QComboBox()
-        self.voice.setStyleSheet("font-size: 15px;")
+        self.voice.setStyleSheet("""
+            QComboBox {
+                font-size: 15px;
+                background: #fafafa;
+                border: 1px solid gainsboro;
+                border-radius: 8px;
+                padding: 0 8px;
+            }
+        """)
         self.voice.addItems(["Alex", "Victoria"])
         self.voice.setFixedHeight(38)
 
@@ -69,19 +76,27 @@ class SettingsWindow(QWidget):
         """)
 
         background_layout = QHBoxLayout()
-        background_layout.addWidget(QLabel("Work in background"))
+        background_label = QLabel("Work in background")
+        background_label.setStyleSheet("font-size: 15px;")
+        background_layout.addWidget(background_label)
         background_layout.addStretch()
         background_layout.addWidget(self.background)
 
         self.lay.addWidget(self.header)
         self.lay.addSpacing(20)
 
-        self.lay.addWidget(QLabel("Assistant name:"))
+        name_label = QLabel("Assistant name:")
+        name_label.setStyleSheet("font-size: 15px;")
+
+        self.lay.addWidget(name_label)
         self.lay.addWidget(self.name)
 
         self.lay.addSpacing(10)
 
-        self.lay.addWidget(QLabel("Select voice:"))
+        voice_label = QLabel("Select voice:")
+        voice_label.setStyleSheet("font-size: 15px;")
+
+        self.lay.addWidget(voice_label)
         self.lay.addWidget(self.voice)
 
         self.lay.addSpacing(10)
@@ -89,6 +104,15 @@ class SettingsWindow(QWidget):
 
         self.setLayout(self.lay)
         self.load_settings()
+
+    def validate(self):
+        text = self.name.text().strip()
+        if len(text) < 3 or len(text) > 15:
+            return False
+        elif not re.fullmatch(r"[A-Za-zА-Яа-яЁёІіЇїЄєҐґ0-9 .,!?'-]+", text):
+            return False
+        else:
+            return text
 
     def load_settings(self):
         if not os.path.exists(self.json):
@@ -108,13 +132,16 @@ class SettingsWindow(QWidget):
         )
 
     def save_settings(self):
-        settings = {
-            "name": self.name.text(),
-            "voice": self.voice.currentText()
-        }
+        name = self.validate()
 
-        with open(self.json, "w", encoding="utf-8") as file:
-            json.dump(settings, file, ensure_ascii=False, indent=4)
+        if name:
+            settings = {
+                "name": name,
+                "voice": self.voice.currentText()
+            }
+
+            with open(self.json, "w", encoding="utf-8") as file:
+                json.dump(settings, file, ensure_ascii=False, indent=4)
 
     def closeEvent(self, event):
         self.deleteLater()
@@ -226,14 +253,14 @@ class MainWindow(QMainWindow):
 
         self.message_input.returnPressed.connect(self.send_message)
 
-        self.send_btn = QPushButton("➤")
+        self.send_btn = QPushButton("▶")
         self.send_btn.setFixedSize(40, 40)
         self.send_btn.setStyleSheet("""
             QPushButton {
                 background-color: white;
                 color: black;
                 border-radius: 13px;
-                font-size: 16px;
+                font-size: 32px;
             }
             QPushButton:hover {
                 background-color: #dddddd;
