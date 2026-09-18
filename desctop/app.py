@@ -275,12 +275,10 @@ class MainWindow(QMainWindow):
         )
 
     def create_commands(self):
-        # Правая панель
         self.commands_frame = QFrame()
         self.commands_frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.commands_frame.setFixedWidth(300)
 
-        # Внешний вид правой панели
         self.commands_frame.setStyleSheet("""
             QFrame {
                 background-color: #2f2f2f;
@@ -315,14 +313,10 @@ class MainWindow(QMainWindow):
 
         self.commands_layout = QVBoxLayout(self.commands_frame)
         self.commands_layout.setContentsMargins(30, 30, 30, 30)
-        self.commands_layout.setAlignment(
-            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop
-        )
         self.commands_layout.setSpacing(12)
 
-        # Заголовок управления
         self.commands_label = QLabel("Керування асистентом")
-        self.commands_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.commands_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.commands_label.setStyleSheet("""
             color: white;
             font-size: 20px;
@@ -330,24 +324,20 @@ class MainWindow(QMainWindow):
             padding-bottom: 10px;
         """)
 
-        # Кнопка Start
         self.start_btn = QPushButton("Start", self.commands_frame)
         self.start_btn.setFixedSize(150, 45)
         self.start_btn.clicked.connect(self.start_assintant)
 
-        # Кнопка Stop
         self.stop_btn = QPushButton("Stop", self.commands_frame)
         self.stop_btn.setFixedSize(150, 45)
         self.stop_btn.clicked.connect(self.stop_assintant)
 
-        # Кнопка Restart
         self.restart_btn = QPushButton("Restart", self.commands_frame)
         self.restart_btn.setFixedSize(150, 45)
         self.restart_btn.clicked.connect(self.restart_assintant)
 
-        # Заголовок групп
         self.groups_label = QLabel("Групи")
-        self.groups_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.groups_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.groups_label.setStyleSheet("""
             color: white;
             font-size: 18px;
@@ -356,27 +346,44 @@ class MainWindow(QMainWindow):
             padding-bottom: 5px;
         """)
 
-        # Кнопка Группа 1
         self.group1_btn = QPushButton("Група 1", self.commands_frame)
         self.group1_btn.setFixedSize(150, 45)
         self.group1_btn.clicked.connect(self.group1_clicked)
 
-        # Кнопка Группа 2
         self.group2_btn = QPushButton("Група 2", self.commands_frame)
         self.group2_btn.setFixedSize(150, 45)
         self.group2_btn.clicked.connect(self.group2_clicked)
 
-        # Добавляем элементы в панель
         self.commands_layout.addWidget(self.commands_label)
-        self.commands_layout.addWidget(self.start_btn)
-        self.commands_layout.addWidget(self.stop_btn)
-        self.commands_layout.addWidget(self.restart_btn)
+
+        self.commands_layout.addWidget(
+            self.start_btn,
+            alignment=Qt.AlignmentFlag.AlignHCenter
+        )
+
+        self.commands_layout.addWidget(
+            self.stop_btn,
+            alignment=Qt.AlignmentFlag.AlignHCenter
+        )
+
+        self.commands_layout.addWidget(
+            self.restart_btn,
+            alignment=Qt.AlignmentFlag.AlignHCenter
+        )
 
         self.commands_layout.addSpacing(10)
 
         self.commands_layout.addWidget(self.groups_label)
-        self.commands_layout.addWidget(self.group1_btn)
-        self.commands_layout.addWidget(self.group2_btn)
+
+        self.commands_layout.addWidget(
+            self.group1_btn,
+            alignment=Qt.AlignmentFlag.AlignHCenter
+        )
+
+        self.commands_layout.addWidget(
+            self.group2_btn,
+            alignment=Qt.AlignmentFlag.AlignHCenter
+        )
 
         self.commands_layout.addStretch()
 
@@ -436,11 +443,9 @@ class MainWindow(QMainWindow):
         self.restart_btn.setEnabled(False)
         self.stop_assintant(on_stopped=self.start_assintant)
 
-    # Функция кнопки Группа 1
     def group1_clicked(self):
         print("Натиснуто Група 1")
 
-    # Функция кнопки Группа 2
     def group2_clicked(self):
         print("Натиснуто Група 2")
 
