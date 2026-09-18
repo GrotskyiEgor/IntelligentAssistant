@@ -275,36 +275,110 @@ class MainWindow(QMainWindow):
         )
 
     def create_commands(self):
+        # Правая панель
         self.commands_frame = QFrame()
         self.commands_frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.commands_frame.setFixedWidth(300)
 
+        # Внешний вид правой панели
+        self.commands_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2f2f2f;
+            }
+
+            QLabel {
+                color: white;
+            }
+
+            QPushButton {
+                background-color: #3b82f6;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: bold;
+            }
+
+            QPushButton:hover {
+                background-color: #2563eb;
+            }
+
+            QPushButton:pressed {
+                background-color: #1d4ed8;
+            }
+
+            QPushButton:disabled {
+                background-color: #555555;
+                color: #aaaaaa;
+            }
+        """)
+
         self.commands_layout = QVBoxLayout(self.commands_frame)
-        self.commands_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        self.commands_layout.setSpacing(15)
+        self.commands_layout.setContentsMargins(30, 30, 30, 30)
+        self.commands_layout.setAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop
+        )
+        self.commands_layout.setSpacing(12)
 
-        self.start_btn = QPushButton("Start", self.commands_frame)
-        self.start_btn.setFixedSize(150, 50)
-        self.start_btn.move(60, 30)
-        self.start_btn.clicked.connect(self.start_assintant)
-
-        self.stop_btn = QPushButton("Stop", self.commands_frame)
-        self.stop_btn.setFixedSize(150, 50)
-        self.stop_btn.move(60, 95)
-        self.stop_btn.clicked.connect(self.stop_assintant)
-
-        self.restart_btn = QPushButton("Restart", self.commands_frame)
-        self.restart_btn.setFixedSize(150, 50)
-        self.restart_btn.move(60, 160)
-        self.restart_btn.clicked.connect(self.restart_assintant)
-
+        # Заголовок управления
         self.commands_label = QLabel("Керування асистентом")
         self.commands_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.commands_label.setStyleSheet("""
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            padding-bottom: 10px;
+        """)
 
+        # Кнопка Start
+        self.start_btn = QPushButton("Start", self.commands_frame)
+        self.start_btn.setFixedSize(150, 45)
+        self.start_btn.clicked.connect(self.start_assintant)
+
+        # Кнопка Stop
+        self.stop_btn = QPushButton("Stop", self.commands_frame)
+        self.stop_btn.setFixedSize(150, 45)
+        self.stop_btn.clicked.connect(self.stop_assintant)
+
+        # Кнопка Restart
+        self.restart_btn = QPushButton("Restart", self.commands_frame)
+        self.restart_btn.setFixedSize(150, 45)
+        self.restart_btn.clicked.connect(self.restart_assintant)
+
+        # Заголовок групп
+        self.groups_label = QLabel("Групи")
+        self.groups_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.groups_label.setStyleSheet("""
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            padding-top: 15px;
+            padding-bottom: 5px;
+        """)
+
+        # Кнопка Группа 1
+        self.group1_btn = QPushButton("Група 1", self.commands_frame)
+        self.group1_btn.setFixedSize(150, 45)
+        self.group1_btn.clicked.connect(self.group1_clicked)
+
+        # Кнопка Группа 2
+        self.group2_btn = QPushButton("Група 2", self.commands_frame)
+        self.group2_btn.setFixedSize(150, 45)
+        self.group2_btn.clicked.connect(self.group2_clicked)
+
+        # Добавляем элементы в панель
         self.commands_layout.addWidget(self.commands_label)
         self.commands_layout.addWidget(self.start_btn)
         self.commands_layout.addWidget(self.stop_btn)
         self.commands_layout.addWidget(self.restart_btn)
+
+        self.commands_layout.addSpacing(10)
+
+        self.commands_layout.addWidget(self.groups_label)
+        self.commands_layout.addWidget(self.group1_btn)
+        self.commands_layout.addWidget(self.group2_btn)
+
+        self.commands_layout.addStretch()
 
         self.main_layout.addWidget(self.messages_frame_back)
         self.main_layout.addWidget(self.commands_frame)
@@ -362,6 +436,13 @@ class MainWindow(QMainWindow):
         self.restart_btn.setEnabled(False)
         self.stop_assintant(on_stopped=self.start_assintant)
 
+    # Функция кнопки Группа 1
+    def group1_clicked(self):
+        print("Натиснуто Група 1")
+
+    # Функция кнопки Группа 2
+    def group2_clicked(self):
+        print("Натиснуто Група 2")
 
     def closeEvent(self, event):
         if self.assistant_process is not None:
@@ -389,7 +470,7 @@ class MainWindow(QMainWindow):
                 answer = line[len("Відповідь:"):].strip()
 
                 if answer:
-                    self.add_message("Асистент", answer)
+                    self.add_message("Ассистент", answer)
 
     def read_error(self):
         data = self.assistant_process.readAllStandardError()
@@ -417,5 +498,6 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, e):
         self.deleteLater()
-        if self.settings: self.settings.close()
+        if self.settings:
+            self.settings.close()
         e.accept()
