@@ -5,7 +5,7 @@ from PyQt6.QtCore import QProcess, QProcessEnvironment
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt
 
-
+from hPyT import *
 from settings_app import SettingsWindow
 
 
@@ -19,7 +19,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Intelligent Voice Assistant")
         self.setMinimumSize(960, 540)
         self.setFixedSize(1280, 720)
-        self.setStyleSheet("background: grey;")
+        self.setStyleSheet("background: #181818;")
+        title_bar_color.set(self, color='#181818')
 
         menubar = QMenuBar()
         menu = menubar.addMenu("Assistant")
@@ -30,7 +31,7 @@ class MainWindow(QMainWindow):
 
         self.center = QWidget()
         self.center.setObjectName("centralBg")
-        self.center.setStyleSheet("QWidget#centralBg { background: grey; }")
+        self.center.setStyleSheet("QWidget#centralBg { background: #181818; }")
         self.setCentralWidget(self.center)
 
         self.main_layout = QHBoxLayout(self.center)
@@ -52,8 +53,8 @@ class MainWindow(QMainWindow):
         self.main_panel_background_frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.main_panel_background_frame.setFixedSize(270, 690)
         self.main_panel_background_frame.setStyleSheet("""
-            background: #2f2f2f;
-            border-radius: 16px;
+            background: #292929;
+            border-radius: 15px;
         """)
 
         self.main_panel_background_frame.setContentsMargins(10, 10, 10, 10)
@@ -82,7 +83,7 @@ class MainWindow(QMainWindow):
 
         self.messages_frame_back.setStyleSheet("""
             QFrame#messages_frame_back {
-                background-color: #2f2f2f;
+                background-color: #292929;
                 border-radius: 16px;
             }
         """)
@@ -153,14 +154,14 @@ class MainWindow(QMainWindow):
         self.input_frame.setMinimumHeight(60)
         self.input_frame.setStyleSheet("""
             QFrame#inputFrame {
-                background-color: #2f2f2f;
-                border-radius: 24px;
+                background-color: #2a2a2e;
+                border-radius: 20px;
                 border: 1px solid #4a4a4a;
             }
         """)
 
         input_layout = QHBoxLayout(self.input_frame)
-        input_layout.setContentsMargins(16, 8, 8, 8)
+        input_layout.setContentsMargins(15, 5, 7, 5)
         input_layout.setSpacing(8)
 
         self.message_input = QLineEdit()
@@ -177,16 +178,16 @@ class MainWindow(QMainWindow):
         self.message_input.returnPressed.connect(self.send_message)
 
         self.send_btn = QPushButton("▶")
-        self.send_btn.setFixedSize(40, 40)
+        self.send_btn.setFixedSize(45, 45)
         self.send_btn.setStyleSheet("""
             QPushButton {
-                background-color: white;
+                background-color: #7565f7;
                 color: black;
-                border-radius: 13px;
+                border-radius: 14px;
                 font-size: 32px;
             }
             QPushButton:hover {
-                background-color: #dddddd;
+                background-color: #786dd6;
             }
         """)
 
@@ -238,12 +239,12 @@ class MainWindow(QMainWindow):
 
         self.commands_frame.setStyleSheet("""
             QFrame {
-                background-color: #2f2f2f;
+                background-color: #292929;
                 border-radius: 16px;
             }
 
             QFrame#section_frame {
-                background-color: #2f2f2f;
+                background-color: #292929;
                 border-radius: 16px;
             }
 
@@ -252,7 +253,7 @@ class MainWindow(QMainWindow):
             }
 
             QPushButton {
-                background-color: #3b82f6;
+                background-color: #7565f7;
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -261,7 +262,7 @@ class MainWindow(QMainWindow):
             }
 
             QPushButton:hover {
-                background-color: #2563eb;
+                background-color: #786dd6;
             }
 
             QPushButton:pressed {

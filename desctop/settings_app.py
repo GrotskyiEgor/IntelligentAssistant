@@ -5,13 +5,16 @@ from PyQt6.QtCore import QProcess, QProcessEnvironment
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt
 
+from hPyT import *
+
 
 class SettingsWindow(QWidget):
     def __init__(self, win):
         super().__init__()
         self.setWindowTitle("Settings")
         self.setFixedSize(400, 500)
-        self.setStyleSheet("background: white;")
+        self.setStyleSheet("background: #181818; color: white;")
+        title_bar_color.set(self, color='#181818')
 
         self.json = "settings.json"
 
@@ -29,7 +32,7 @@ class SettingsWindow(QWidget):
         title.setStyleSheet("font-size: 26px; font-weight: bold;")
 
         save_btn = QPushButton(text="Save")
-        save_btn.setStyleSheet("QPushButton { font-size: 15px; background: gainsboro; border-radius: 6px; } QPushButton:hover { background: #b8b8b8; }")
+        save_btn.setStyleSheet("QPushButton { font-size: 16px; font-weight: 600; color: black; background: #7565f7; border-radius: 9px; } QPushButton:hover { background: #6152de; }")
         save_btn.setFixedSize(120, 38)
         save_btn.clicked.connect(self.close)
 
@@ -37,7 +40,7 @@ class SettingsWindow(QWidget):
         self.header.lay.addWidget(save_btn)
 
         self.name = QLineEdit()
-        self.name.setStyleSheet("font-size: 15px; background: #fafafa; border: 1px solid gainsboro; border-radius: 8px; padding: 0 8px;")
+        self.name.setStyleSheet("font-size: 15px; background: #292929; border: 1px solid #4a4a4a; border-radius: 8px; padding: 0 8px;")
         self.name.setPlaceholderText("Enter assistant name")
         self.name.setFixedHeight(38)
 
@@ -45,8 +48,8 @@ class SettingsWindow(QWidget):
         self.voice.setStyleSheet("""
             QComboBox {
                 font-size: 15px;
-                background: #fafafa;
-                border: 1px solid gainsboro;
+                background: #292929;
+                border: 1px solid #4a4a4a;
                 border-radius: 8px;
                 padding: 0 8px;
             }
