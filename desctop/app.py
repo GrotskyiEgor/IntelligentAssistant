@@ -1,9 +1,9 @@
-import sys, os, subprocess, json, re
 import PyQt6 as qt
+import sys, os, subprocess, json, re
 
 from PyQt6.QtCore import QProcess, QProcessEnvironment
 from PyQt6.QtWidgets import *
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 
 
 from settings_app import SettingsWindow
@@ -82,7 +82,7 @@ class MainWindow(QMainWindow):
 
         self.messages_frame_back.setStyleSheet("""
             QFrame#messages_frame_back {
-                background-color: #2f2f2f;
+                background-color: #101010;
                 border-radius: 16px;
             }
         """)
@@ -91,11 +91,16 @@ class MainWindow(QMainWindow):
         self.messages_frame_back_layout.setContentsMargins(0, 0, 0, 0)
 
         self.messages_frame = QFrame()
+        self.messages_frame.setObjectName("messages_frame")
         self.messages_frame.setFrameShape(QFrame.Shape.NoFrame)
+        self.messages_frame.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding
+        )
 
         self.messages_frame.setStyleSheet("""
-            QFrame {
-                background: transparent;
+            QFrame#messages_frame {
+                background-color: #101010;
             }
 
             QLabel {
@@ -110,6 +115,27 @@ class MainWindow(QMainWindow):
             QWidget#messages_container {
                 background: transparent;
             }
+
+            QFrame#messageBubbleSent {
+                background-color: #0088cc;
+                border-radius: 14px;
+            }
+
+            QFrame#messageBubbleReceived {
+                background-color: #3b3b3b;
+                border-radius: 14px;
+            }
+
+            QLabel#messageSender {
+                color: #c9e8f7;
+                font-size: 12px;
+                font-weight: bold;
+            }
+
+            QLabel#messageText {
+                color: #ffffff;
+                font-size: 15px;
+            }
         """)
 
         self.messages_layout = QVBoxLayout(self.messages_frame)
@@ -121,6 +147,7 @@ class MainWindow(QMainWindow):
         self.title.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.title.setStyleSheet("""
             color: #ffffff;
+            background: transparent;
             font-size: 20px;
             font-weight: bold;
             padding-bottom: 5px;
@@ -130,17 +157,31 @@ class MainWindow(QMainWindow):
         self.messages_area = QScrollArea()
         self.messages_area.setWidgetResizable(True)
         self.messages_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.messages_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.messages_area.setStyleSheet(
+            "QScrollArea { background: transparent; border: none; }"
+        )
+        self.messages_area.viewport().setAutoFillBackground(False)
+        self.messages_area.viewport().setStyleSheet("background: transparent;")
 
         messages_container = QWidget()
         messages_container.setObjectName("messages_container")
+        messages_container.setStyleSheet("background: transparent;")
         self.messages_container_layout = QVBoxLayout(messages_container)
+        self.messages_container_layout.setContentsMargins(0, 0, 0, 0)
+        self.messages_container_layout.setSpacing(12)
         self.messages_container_layout.addStretch()
 
         self.messages_area.setWidget(messages_container)
         self.messages_layout.addWidget(self.messages_area)
 
         self.create_input()
-        self.messages_layout.addWidget(self.input_frame)
+        self.messages_layout.addWidget(
+            self.input_frame,
+            alignment=Qt.AlignmentFlag.AlignHCenter
+        )
 
         self.messages_frame_back_layout.addWidget(self.messages_frame)
 
@@ -176,20 +217,17 @@ class MainWindow(QMainWindow):
 
         self.message_input.returnPressed.connect(self.send_message)
 
-        self.send_btn = QPushButton("▶")
+        self.send_btn = QPushButton()
         self.send_btn.setFixedSize(40, 40)
         self.send_btn.setStyleSheet("""
             QPushButton {
                 background-color: white;
-                color: black;
                 border-radius: 13px;
-                font-size: 32px;
             }
             QPushButton:hover {
                 background-color: #dddddd;
             }
         """)
-
         self.send_btn.clicked.connect(self.send_message)
 
         input_layout.addWidget(self.message_input)
@@ -216,20 +254,57 @@ class MainWindow(QMainWindow):
         self.message_input.clear()
 
     def add_message(self, sender, text):
-        message = QLabel(f"<b>{sender}:</b> {text}")
-        message.setWordWrap(True)
-        message.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
+        is_outgoing = sender == "Вы"
+        row = QWidget(self.messages_area.widget())
+        row.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred
         )
+        row.setStyleSheet("background: transparent;")
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(0)
+
+        bubble = QFrame()
+        bubble.setObjectName(
+            "messageBubbleSent" if is_outgoing else "messageBubbleReceived"
+        )
+        bubble.setStyleSheet(
+            "background-color: #0088cc; border-radius: 14px;"
+            if is_outgoing
+            else "background-color: #3b3b3b; border-radius: 14px;"
+        )
+        bubble.setMaximumWidth(440)
+        bubble_layout = QVBoxLayout(bubble)
+        bubble_layout.setContentsMargins(12, 8, 12, 8)
+        bubble_layout.setSpacing(3)
+
+        sender_label = QLabel(sender)
+        sender_label.setObjectName("messageSender")
+        body = QLabel(text)
+        body.setObjectName("messageText")
+        body.setWordWrap(True)
+        body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        body.setMaximumWidth(410)
+
+        bubble_layout.addWidget(sender_label)
+        bubble_layout.addWidget(body)
+
+        if is_outgoing:
+            row_layout.addStretch(1)
+            row_layout.addWidget(bubble, alignment=Qt.AlignmentFlag.AlignRight)
+        else:
+            row_layout.addWidget(bubble, alignment=Qt.AlignmentFlag.AlignLeft)
+            row_layout.addStretch(1)
 
         self.messages_container_layout.insertWidget(
             self.messages_container_layout.count() - 1,
-            message
+            row
         )
 
-        self.messages_area.verticalScrollBar().setValue(
+        QTimer.singleShot(0, lambda: self.messages_area.verticalScrollBar().setValue(
             self.messages_area.verticalScrollBar().maximum()
-        )
+        ))
 
     def create_command_panel(self):
         self.commands_frame = QFrame()
@@ -510,7 +585,7 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
 
         self.main_panel_background_frame.setGeometry(0, 25, self.width() - 300, self.height() - 25)
-        self.messages_frame.setFixedWidth(self.width() - 300)
+        self.messages_frame.setFixedWidth(self.messages_frame_back.width())
         self.commands_frame.setGeometry(self.width() - 300, 25, 300, self.height() - 25)
 
     def closeEvent(self, e):
