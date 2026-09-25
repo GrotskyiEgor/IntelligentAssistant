@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt
 class SettingsWindow(QWidget):
     def __init__(self, win):
         super().__init__()
-        self.setWindowTitle("Settings")
+        self.setWindowTitle("Налаштування")
         self.setFixedSize(400, 500)
         self.setStyleSheet("background: white;")
 
@@ -25,10 +25,10 @@ class SettingsWindow(QWidget):
         self.header.lay = QHBoxLayout()
         self.header.setLayout(self.header.lay)
 
-        title = QLabel("Settings")
+        title = QLabel("Налаштування")
         title.setStyleSheet("font-size: 26px; font-weight: bold;")
 
-        save_btn = QPushButton(text="Save")
+        save_btn = QPushButton(text="Зберегти")
         save_btn.setStyleSheet("QPushButton { font-size: 15px; background: gainsboro; border-radius: 6px; } QPushButton:hover { background: #b8b8b8; }")
         save_btn.setFixedSize(120, 38)
         save_btn.clicked.connect(self.close)
@@ -81,7 +81,7 @@ class SettingsWindow(QWidget):
         # background_layout.addStretch()
         # background_layout.addWidget(self.background)
         background_layout = QHBoxLayout()
-        background_label = QLabel("Work in background")
+        background_label = QLabel("Працювати у фоновому режимі")
         background_label.setStyleSheet("font-size: 15px;")
         background_layout.addWidget(background_label)
         background_layout.addStretch()
@@ -90,7 +90,7 @@ class SettingsWindow(QWidget):
         self.lay.addWidget(self.header)
         self.lay.addSpacing(20)
 
-        name_label = QLabel("Assistant name:")
+        name_label = QLabel("Ім'я помічника:")
         name_label.setStyleSheet("font-size: 15px;")
 
         self.lay.addWidget(name_label)
@@ -98,7 +98,7 @@ class SettingsWindow(QWidget):
 
         self.lay.addSpacing(10)
 
-        voice_label = QLabel("Select voice:")
+        voice_label = QLabel("Виберіть голос:")
         voice_label.setStyleSheet("font-size: 15px;")
 
         self.lay.addWidget(voice_label)

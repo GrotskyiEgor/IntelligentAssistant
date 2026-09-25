@@ -22,10 +22,53 @@ class MainWindow(QMainWindow):
         self.setStyleSheet("background: grey;")
 
         menubar = QMenuBar()
-        menu = menubar.addMenu("Assistant")
-        settings_act = menu.addAction("Settings")
+        menubar.setStyleSheet("""
+            QMenuBar {
+                color: white;
+                border: none;
+                padding: 4px 8px;
+                font-size: 15px;
+                font-weight: bold;
+            }
+
+            QMenuBar::item {
+                background-color: #2f2f2f;
+                color: white;
+                padding: 8px 16px;
+                margin: 2px;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: bold;
+            }
+
+            QMenuBar::item:selected {
+                background-color: #3b82f6;
+            }
+
+            QMenu {
+                background-color: #2f2f2f;
+                color: white;
+                border: 1px solid #4a4a4a;
+                border-radius: 10px;
+                padding: 5px;
+            }
+
+            QMenu::item {
+                padding: 9px 25px;
+                border-radius: 6px;
+            }
+
+            QMenu::item:selected {
+                background-color: #3b82f6;
+            }
+        """)
+
+        menu = menubar.addMenu("Асистент")
+
+        settings_act = menu.addAction("Налаштування")
         settings_act.triggered.connect(self.open_settings)
-        exit_act = menu.addAction("Exit")
+
+        exit_act = menu.addAction("Вихід")
         exit_act.triggered.connect(self.close)
 
         self.center = QWidget()
@@ -49,11 +92,15 @@ class MainWindow(QMainWindow):
 
     def create_main_panel(self):
         self.main_panel_background_frame = QFrame()
-        self.main_panel_background_frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.main_panel_background_frame.setFixedSize(270, 690)
+        self.main_panel_background_frame.setFrameShape(QFrame.Shape.NoFrame)
+        self.main_panel_background_frame.setFrameShape(QFrame.Shape.NoFrame)
+        self.main_panel_background_frame.setFixedSize(270, 660)
+
         self.main_panel_background_frame.setStyleSheet("""
-            background: #2f2f2f;
-            border-radius: 16px;
+            QFrame {
+                background-color: #2f2f2f;
+                border-radius: 16px;
+            }
         """)
 
         self.main_panel_background_frame.setContentsMargins(10, 10, 10, 10)
@@ -77,12 +124,12 @@ class MainWindow(QMainWindow):
     def create_chat(self):
         self.messages_frame_back = QFrame()
         self.messages_frame_back.setFrameShape(QFrame.Shape.NoFrame)
-        self.messages_frame_back.setFixedSize(705, 690)
+        self.messages_frame_back.setFixedSize(705, 660)
         self.messages_frame_back.setObjectName("messages_frame_back")
 
         self.messages_frame_back.setStyleSheet("""
             QFrame#messages_frame_back {
-                background-color: #101010;
+                background-color: #2f2f2f;
                 border-radius: 16px;
             }
         """)
@@ -100,7 +147,8 @@ class MainWindow(QMainWindow):
 
         self.messages_frame.setStyleSheet("""
             QFrame#messages_frame {
-                background-color: #101010;
+                background-color: transparent;
+                border: none;
             }
 
             QLabel {
@@ -217,15 +265,23 @@ class MainWindow(QMainWindow):
 
         self.message_input.returnPressed.connect(self.send_message)
 
-        self.send_btn = QPushButton()
+        self.send_btn = QPushButton("➤")
         self.send_btn.setFixedSize(40, 40)
         self.send_btn.setStyleSheet("""
             QPushButton {
-                background-color: white;
+                background-color: #3b82f6;
+                color: white;
                 border-radius: 13px;
+                font-size: 20px;
+                font-weight: bold;
             }
+
             QPushButton:hover {
-                background-color: #dddddd;
+                background-color: #2563eb;
+            }
+
+            QPushButton:pressed {
+                background-color: #1d4ed8;
             }
         """)
         self.send_btn.clicked.connect(self.send_message)
@@ -270,9 +326,9 @@ class MainWindow(QMainWindow):
             "messageBubbleSent" if is_outgoing else "messageBubbleReceived"
         )
         bubble.setStyleSheet(
-            "background-color: #0088cc; border-radius: 14px;"
+            "background-color: #3b82f6; border-radius: 14px;"
             if is_outgoing
-            else "background-color: #3b3b3b; border-radius: 14px;"
+            else "background-color: #454545; border-radius: 14px;"
         )
         bubble.setMaximumWidth(440)
         bubble_layout = QVBoxLayout(bubble)
@@ -308,8 +364,16 @@ class MainWindow(QMainWindow):
 
     def create_command_panel(self):
         self.commands_frame = QFrame()
-        self.commands_frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.commands_frame.setFixedSize(270, 690)
+        self.commands_frame.setFrameShape(QFrame.Shape.NoFrame)
+        self.commands_frame.setFrameShape(QFrame.Shape.NoFrame)
+        self.commands_frame.setFixedSize(270, 660)
+
+        self.commands_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2f2f2f;
+                border-radius: 16px;
+            }
+        """)
 
         self.commands_frame.setStyleSheet("""
             QFrame {
@@ -584,9 +648,22 @@ class MainWindow(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
 
-        self.main_panel_background_frame.setGeometry(0, 25, self.width() - 300, self.height() - 25)
-        self.messages_frame.setFixedWidth(self.messages_frame_back.width())
-        self.commands_frame.setGeometry(self.width() - 300, 25, 300, self.height() - 25)
+        self.main_panel_background_frame.setGeometry(
+            0, 0,
+            270,
+            self.height()
+        )
+
+        self.messages_frame.setFixedWidth(
+            self.messages_frame_back.width()
+        )
+
+        self.commands_frame.setGeometry(
+            self.width() - 270,
+            0,
+            270,
+            self.height()
+        )
 
     def closeEvent(self, e):
         self.deleteLater()
