@@ -5,13 +5,16 @@ from PyQt6.QtCore import QProcess, QProcessEnvironment
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt
 
+from hPyT import *
+
 
 class SettingsWindow(QWidget):
     def __init__(self, win):
         super().__init__()
         self.setWindowTitle("Налаштування")
         self.setFixedSize(400, 500)
-        self.setStyleSheet("background: white;")
+        self.setStyleSheet("background: #2f2f2f; color: white;")
+        title_bar_color.set(self, color='#181818')
 
         self.json = "settings.json"
 
@@ -29,7 +32,7 @@ class SettingsWindow(QWidget):
         title.setStyleSheet("font-size: 26px; font-weight: bold;")
 
         save_btn = QPushButton(text="Зберегти")
-        save_btn.setStyleSheet("QPushButton { font-size: 15px; background: gainsboro; border-radius: 6px; } QPushButton:hover { background: #b8b8b8; }")
+        save_btn.setStyleSheet("QPushButton { font-size: 16px; font-weight: 600; color: black; background: #3b82f6; border-radius: 9px; } QPushButton:hover { background: #2563eb; }")
         save_btn.setFixedSize(120, 38)
         save_btn.clicked.connect(self.close)
 
@@ -37,16 +40,16 @@ class SettingsWindow(QWidget):
         self.header.lay.addWidget(save_btn)
 
         self.name = QLineEdit()
-        self.name.setStyleSheet("font-size: 15px; background: #fafafa; border: 1px solid gainsboro; border-radius: 8px; padding: 0 8px;")
-        self.name.setPlaceholderText("Enter assistant name")
+        self.name.setStyleSheet("font-size: 15px; background: #292929; border: 1px solid #4a4a4a; border-radius: 8px; padding: 0 8px;")
+        self.name.setPlaceholderText("Введіть і'мя ассистенту")
         self.name.setFixedHeight(38)
 
         self.voice = QComboBox()
         self.voice.setStyleSheet("""
             QComboBox {
                 font-size: 15px;
-                background: #fafafa;
-                border: 1px solid gainsboro;
+                background: #292929;
+                border: 1px solid #4a4a4a;
                 border-radius: 8px;
                 padding: 0 8px;
             }
@@ -59,21 +62,21 @@ class SettingsWindow(QWidget):
         self.background.setFixedSize(26, 26)
 
         self.background.setStyleSheet("""
-        QCheckBox {
-            background: transparent;
-        }
+            QCheckBox {
+                background: transparent;
+            }
 
-        QCheckBox::indicator {
-            border-radius: 6px;
-        }
+            QCheckBox::indicator {
+                border-radius: 6px;
+            }
 
-        QCheckBox::indicator:checked {
-            background: #333333;
-        }
+            QCheckBox::indicator:checked {
+                background: #333333;
+            }
 
-        QCheckBox::indicator:unchecked {
-            background: #d5d5d5;
-        }
+            QCheckBox::indicator:unchecked {
+                background: #d5d5d5;
+            }
         """)
 
         # background_layout = QHBoxLayout()
@@ -81,7 +84,7 @@ class SettingsWindow(QWidget):
         # background_layout.addStretch()
         # background_layout.addWidget(self.background)
         background_layout = QHBoxLayout()
-        background_label = QLabel("Працювати у фоновому режимі")
+        background_label = QLabel("Work in background")
         background_label.setStyleSheet("font-size: 15px;")
         background_layout.addWidget(background_label)
         background_layout.addStretch()
@@ -90,7 +93,7 @@ class SettingsWindow(QWidget):
         self.lay.addWidget(self.header)
         self.lay.addSpacing(20)
 
-        name_label = QLabel("Ім'я помічника:")
+        name_label = QLabel("І'мя ассистенту:")
         name_label.setStyleSheet("font-size: 15px;")
 
         self.lay.addWidget(name_label)
@@ -98,7 +101,7 @@ class SettingsWindow(QWidget):
 
         self.lay.addSpacing(10)
 
-        voice_label = QLabel("Виберіть голос:")
+        voice_label = QLabel("Голос ассистенту:")
         voice_label.setStyleSheet("font-size: 15px;")
 
         self.lay.addWidget(voice_label)

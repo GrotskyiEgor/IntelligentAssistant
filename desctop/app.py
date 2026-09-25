@@ -388,8 +388,8 @@ class MainWindow(QMainWindow):
 
             QLabel {
                 color: white;
-            }
-
+            } 
+    
             QPushButton {
                 background-color: #3b82f6;
                 color: white;
