@@ -36,8 +36,8 @@ def find_windows_app(filename: str):
                 if os.path.isfile(path):
                     return path
 
-    except Exception:
-        pass
+    except Exception as error:
+        print(error)
 
     start_menu_dirs = [
         os.path.join(
@@ -133,8 +133,9 @@ def get_shortcut_target(shortcut_path):
         if target:
             return target
 
-    except Exception:
-        pass
+    except Exception as error:
+        print(error)
+        
 
     return None
 
@@ -177,7 +178,7 @@ def find_linux_app(filename: str):
             if os.path.exists(path):
                 return path
 
-    except Exception:
-        pass
+    except Exception as error:
+        print(error)
 
     return None
