@@ -24,8 +24,8 @@ from utils.voicing_answer import run_voice
 from core.models import *
 
 
-COMMANDS_JSON_PATH = Path(__file__).resolve().parent.parent.parent.parent / "utils" / "commands.json"
 
+COMMANDS_JSON_PATH = Path(__file__).resolve().parent.parent.parent.parent / "utils" / "commands.json"
 
 class Command(BaseCommand):
     def __init__(self):

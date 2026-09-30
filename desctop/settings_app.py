@@ -1,158 +1,118 @@
-import sys, os, subprocess, json, re
-import PyQt6 as qt
+﻿import json
+import os
+import re
 
-from PyQt6.QtCore import QProcess, QProcessEnvironment
-from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt
-
-from hPyT import *
+from PyQt6.QtWidgets import (
+    QComboBox, QFormLayout, QFrame, QLabel, QLineEdit, QPushButton,
+    QVBoxLayout, QWidget,
+)
+from components import Label
+from hPyT import title_bar_color
+from theme import get_theme_colors
 
 
 class SettingsWindow(QWidget):
     def __init__(self, win):
         super().__init__()
-        self.setWindowTitle("Settings")
-        self.setFixedSize(400, 500)
-        self.setStyleSheet("background: #181818; color: white;")
-        title_bar_color.set(self, color='#181818')
-
-        self.json = "settings.json"
-
+        self.win = win
+        self.json = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "settings.json")
+        self.setWindowTitle("Налаштування")
+        self.setFixedSize(420, 510)
         self.setWindowFlags(Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint | Qt.WindowType.WindowCloseButtonHint)
 
-        self.win = win
-        self.lay = QVBoxLayout()
-        self.lay.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
+        header = QFrame()
+        header_layout = QVBoxLayout(header)
+        header_layout.setContentsMargins(0, 0, 0, 8)
+        title = QLabel("Налаштування")
+        title.setStyleSheet("font-size: 24px; font-weight: 700;")
+        subtitle = Label("Налаштуйте вигляд і параметри помічника")
+        subtitle.setStyleSheet("color: #a1a1aa; font-size: 15px;")
+        header_layout.addWidget(title)
+        header_layout.addWidget(subtitle)
+        layout.addWidget(header)
 
-        self.header = QFrame()
-        self.header.lay = QHBoxLayout()
-        self.header.setLayout(self.header.lay)
-
-        title = QLabel("Settings")
-        title.setStyleSheet("font-size: 26px; font-weight: bold;")
-
-        save_btn = QPushButton(text="Save")
-        save_btn.setStyleSheet("QPushButton { font-size: 16px; font-weight: 600; color: black; background: #7565f7; border-radius: 9px; } QPushButton:hover { background: #6152de; }")
-        save_btn.setFixedSize(120, 38)
-        save_btn.clicked.connect(self.close)
-
-        self.header.lay.addWidget(title)
-        self.header.lay.addWidget(save_btn)
-
+        form = QFormLayout()
+        form.setVerticalSpacing(12)
         self.name = QLineEdit()
-        self.name.setStyleSheet("font-size: 15px; background: #292929; border: 1px solid #4a4a4a; border-radius: 8px; padding: 0 8px;")
-        self.name.setPlaceholderText("Enter assistant name")
-        self.name.setFixedHeight(38)
-
+        self.name.setPlaceholderText("Наприклад, Помічник")
         self.voice = QComboBox()
-        self.voice.setStyleSheet("""
-            QComboBox {
-                font-size: 15px;
-                background: #292929;
-                border: 1px solid #4a4a4a;
-                border-radius: 8px;
-                padding: 0 8px;
-            }
-        """)
-        
         self.voice.addItems(["Alex", "Victoria"])
-        self.voice.setFixedHeight(38)
+        self.theme = QComboBox()
+        self.theme.addItem("Темна", "dark")
+        self.theme.addItem("Світла", "light")
+        self.accent = QComboBox()
+        self.accent.addItem("Фіолетова", "purple")
+        self.accent.addItem("Синя", "blue")
+        form.addRow("Ім’я помічника", self.name)
+        form.addRow("Голос", self.voice)
+        form.addRow("Тема оформлення", self.theme)
+        form.addRow("Колір кнопок", self.accent)
+        layout.addLayout(form)
+        layout.addStretch()
 
-        self.background = QCheckBox()
-        self.background.setFixedSize(26, 26)
-
-        self.background.setStyleSheet("""
-        QCheckBox {
-            background: transparent;
-        }
-
-        QCheckBox::indicator {
-            border-radius: 6px;
-        }
-
-        QCheckBox::indicator:checked {
-            background: #333333;
-        }
-
-        QCheckBox::indicator:unchecked {
-            background: #d5d5d5;
-        }
-        """)
-
-        # background_layout = QHBoxLayout()
-        # background_layout.addWidget(QLabel("Work in background"))
-        # background_layout.addStretch()
-        # background_layout.addWidget(self.background)
-        background_layout = QHBoxLayout()
-        background_label = QLabel("Work in background")
-        background_label.setStyleSheet("font-size: 15px;")
-        background_layout.addWidget(background_label)
-        background_layout.addStretch()
-        background_layout.addWidget(self.background)
-
-        self.lay.addWidget(self.header)
-        self.lay.addSpacing(20)
-
-        name_label = QLabel("Assistant name:")
-        name_label.setStyleSheet("font-size: 15px;")
-
-        self.lay.addWidget(name_label)
-        self.lay.addWidget(self.name)
-
-        self.lay.addSpacing(10)
-
-        voice_label = QLabel("Select voice:")
-        voice_label.setStyleSheet("font-size: 15px;")
-
-        self.lay.addWidget(voice_label)
-        self.lay.addWidget(self.voice)
-
-        self.lay.addSpacing(10)
-        # self.lay.addLayout(background_layout)
-
-        self.setLayout(self.lay)
+        save_btn = QPushButton("Зберегти")
+        save_btn.setFixedHeight(42)
+        save_btn.setStyleSheet("QPushButton { background: #7565f7; color: black; border: none; border-radius: 10px; font-weight: 600; } QPushButton:hover { background: #6152de; }")
+        save_btn.clicked.connect(self.save_settings)
+        layout.addWidget(save_btn)
+        self.save_btn = save_btn
+        self.inputs = (self.name, self.voice, self.theme, self.accent)
+        self.theme.currentIndexChanged.connect(self.on_theme_changed)
+        self.accent.currentIndexChanged.connect(self.on_theme_changed)
         self.load_settings()
+        self.apply_theme(win.preferences, sync_main=False)
+
+    def on_theme_changed(self, _index=None):
+        settings = {"theme": self.theme.currentData(), "accent": self.accent.currentData()}
+        self.apply_theme(settings, sync_main=False)
+        self.win.apply_theme(settings)
+
+    def apply_theme(self, settings, sync_main=True):
+        theme, accent = get_theme_colors(settings)
+        self.setStyleSheet(f"background: {theme['window']}; color: {theme['foreground']}; font-size: 14px;")
+        title_bar_color.set(self, color=theme["window"])
+        for widget in getattr(self, "inputs", (self.name, self.voice, self.theme, self.accent)):
+            widget.setFixedHeight(40)
+            widget.setStyleSheet(f"QLineEdit, QComboBox {{ background: {theme['field']}; color: {theme['foreground']}; border: 1px solid {theme['border']}; border-radius: 9px; padding: 0 11px; }} QComboBox QAbstractItemView {{ background: {theme['field']}; color: {theme['foreground']}; selection-background-color: {accent['primary']}; }}")
+        if hasattr(self, "save_btn"):
+            self.save_btn.setStyleSheet(f"QPushButton {{ background: {accent['primary']}; color: black; border: none; border-radius: 10px; font-weight: 600; }} QPushButton:hover {{ background: {accent['hover']}; }}")
+        if hasattr(self, "findChildren"):
+            for label in self.findChildren(QLabel):
+                if label.text() == "Налаштуйте вигляд і параметри помічника":
+                    label.setStyleSheet(f"color: {theme['muted']}; font-size: 15px;")
+        if sync_main:
+            self.win.apply_theme(settings)
 
     def validate(self):
         text = self.name.text().strip()
-        if len(text) < 3 or len(text) > 15:
-            return False
-        elif not re.fullmatch(r"[A-Za-zА-Яа-яЁёІіЇїЄєҐґ0-9 .,!?'-]+", text):
-            return False
-        else:
-            return text
+        return text if 3 <= len(text) <= 24 and re.fullmatch(r"[A-Za-zА-Яа-яЁёІіЇїЄєҐґ0-9 .,!?'-]+", text) else None
 
     def load_settings(self):
-        if not os.path.exists(self.json):
-            self.name.setText("Assistant")
-            self.voice.setCurrentText("Alex")
-            return
-
-        with open(self.json, "r", encoding="utf-8") as file:
-            settings = json.load(file)
-
-        self.name.setText(
-            settings.get("name", "Assistant")
-        )
-
-        self.voice.setCurrentText(
-            settings.get("voice", "Alex")
-        )
+        try:
+            with open(self.json, "r", encoding="utf-8") as file:
+                settings = json.load(file)
+        except (OSError, json.JSONDecodeError):
+            settings = {}
+        self.name.setText(settings.get("name", "Помічник"))
+        self.voice.setCurrentText(settings.get("voice", "Alex"))
+        self.theme.setCurrentIndex(max(0, self.theme.findData(settings.get("theme", "dark"))))
+        self.accent.setCurrentIndex(max(0, self.accent.findData(settings.get("accent", "purple"))))
 
     def save_settings(self):
         name = self.validate()
-
-        if name:
-            settings = {
-                "name": name,
-                "voice": self.voice.currentText()
-            }
-
-            with open(self.json, "w", encoding="utf-8") as file:
-                json.dump(settings, file, ensure_ascii=False, indent=4)
+        if not name:
+            self.name.setToolTip("Введіть ім’я довжиною від 3 до 24 символів")
+            return
+        settings = {"name": name, "voice": self.voice.currentText(), "theme": self.theme.currentData(), "accent": self.accent.currentData()}
+        with open(self.json, "w", encoding="utf-8") as file:
+            json.dump(settings, file, ensure_ascii=False, indent=4)
+        self.win.apply_theme(settings)
+        self.close()
 
     def closeEvent(self, event):
-        self.deleteLater()
-        self.save_settings()
         self.win.settings = None
         event.accept()

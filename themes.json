@@ -1,0 +1,72 @@
+{
+    "themes": {
+        "dark": {
+            "window": "#18181b",
+            "field": "#27272a",
+            "foreground": "#f4f4f5",
+            "muted": "#a1a1aa",
+            "border": "#3f3f46",
+            "panel": "#292929",
+            "replace": {
+                "#181818": "#18181b",
+                "#18181b": "#18181b",
+                "#292929": "#232327",
+                "#2f2f2f": "#27272a",
+                "#2a2a2e": "#202024",
+                "#3b3b3b": "#303036",
+                "#454545": "#303036",
+                "#4a4a4a": "#3f3f46",
+                "#ffffff": "#f4f4f5",
+                "white": "#f4f4f5"
+            }
+        },
+        "light": {
+            "window": "#f1f2f6",
+            "field": "#ffffff",
+            "foreground": "#27272a",
+            "muted": "#666875",
+            "border": "#d0d1da",
+            "panel": "#ffffff",
+            "replace": {
+                "#181818": "#f1f2f6",
+                "#18181b": "#f1f2f6",
+                "#292929": "#ffffff",
+                "#2f2f2f": "#e8e9ef",
+                "#2a2a2e": "#ffffff",
+                "#3b3b3b": "#f0f0f4",
+                "#454545": "#e8e9ef",
+                "#4a4a4a": "#d0d1da",
+                "#ffffff": "#18181b",
+                "white": "#27272a"
+            }
+        }
+    },
+    "accents": {
+        "purple": {
+            "primary": "#7565f7",
+            "hover": "#6152de",
+            "replace": {
+                "#0088cc": "#7565f7",
+                "#3b82f6": "#7565f7",
+                "#7565f7": "#7565f7",
+                "#786dd6": "#6152de",
+                "#6152de": "#6152de",
+                "#3e68e8": "#6152de",
+                "#c9e8f7": "#c4bfff"
+            }
+        },
+        "blue": {
+            "primary": "#4f7cff",
+            "hover": "#3e68e8",
+            "replace": {
+                "#0088cc": "#4f7cff",
+                "#3b82f6": "#4f7cff",
+                "#7565f7": "#4f7cff",
+                "#786dd6": "#3e68e8",
+                "#6152de": "#3e68e8",
+                "#3e68e8": "#3e68e8",
+                "#c9e8f7": "#bfdbfe"
+            }
+        }
+    }
+}
