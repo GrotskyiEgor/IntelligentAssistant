@@ -67,6 +67,84 @@
                 "#3e68e8": "#3e68e8",
                 "#c9e8f7": "#bfdbfe"
             }
+        },
+        "orange": {
+            "primary": "#d97757",
+            "hover": "#c9603c",
+            "replace": {
+                "#0088cc": "#d97757",
+                "#3b82f6": "#d97757",
+                "#7565f7": "#d97757",
+                "#786dd6": "#c9603c",
+                "#6152de": "#c9603c",
+                "#3e68e8": "#c9603c",
+                "#c9e8f7": "#ffd8c7"
+            }
+        },
+        "lime": {
+            "primary": "#00db28",
+            "hover": "#00bd22",
+            "replace": {
+                "#0088cc": "#00db28",
+                "#3b82f6": "#00db28",
+                "#7565f7": "#00db28",
+                "#786dd6": "#00bd22",
+                "#6152de": "#00bd22",
+                "#3e68e8": "#00bd22",
+                "#c9e8f7": "#00db28"
+            }
+        },
+        "brown": {
+            "primary": "#ffd9c2",
+            "hover": "#f7c19f",
+            "replace": {
+                "#0088cc": "#ffd9c2",
+                "#3b82f6": "#ffd9c2",
+                "#7565f7": "#ffd9c2",
+                "#786dd6": "#f7c19f",
+                "#6152de": "#f7c19f",
+                "#3e68e8": "#f7c19f",
+                "#c9e8f7": "#fff2ea"
+            }
+        },
+        "peach": {
+            "primary": "#ffe7dd",
+            "hover": "#f5cdbf",
+            "replace": {
+                "#0088cc": "#ffe7dd",
+                "#3b82f6": "#ffe7dd",
+                "#7565f7": "#ffe7dd",
+                "#786dd6": "#f5cdbf",
+                "#6152de": "#f5cdbf",
+                "#3e68e8": "#f5cdbf",
+                "#c9e8f7": "#ffe7dd"
+            }
+        },
+        "sky": {
+            "primary": "#ddeaff",
+            "hover": "#c3d8f5",
+            "replace": {
+                "#0088cc": "#ddeaff",
+                "#3b82f6": "#ddeaff",
+                "#7565f7": "#ddeaff",
+                "#786dd6": "#c3d8f5",
+                "#6152de": "#c3d8f5",
+                "#3e68e8": "#c3d8f5",
+                "#c9e8f7": "#ddeaff"
+            }
+        },
+        "charcoal": {
+            "primary": "#f3f3f3",
+            "hover": "#dedede",
+            "replace": {
+                "#0088cc": "#f3f3f3",
+                "#3b82f6": "#f3f3f3",
+                "#7565f7": "#f3f3f3",
+                "#786dd6": "#dedede",
+                "#6152de": "#dedede",
+                "#3e68e8": "#dedede",
+                "#c9e8f7": "#f3f3f3"
+            }
         }
     }
 }
