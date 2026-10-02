@@ -1,15 +1,16 @@
-# -> user_text >>...>> -> assist_answer
+from collections.abc import Callable
 
-# Qwen 2.5 1,5b
-# либо 
-# Qwen 3 0.6b - она быстрее
+AnswerModel = Callable[[str], str]
 
-def ans(text: str):
-    print(text)
 
-    answer = "hi"
+def ans(text: str, model: AnswerModel | None = None) -> str:
 
-    print(answer)
-    pass
+    question = text.strip()
+    if not question:
+        return "Напишите вопрос, и я постараюсь на него ответить."
 
-ans(text="hell")
+    if model is None:
+        return "Я получил ваш вопрос, но языковая модель пока не подключена."
+
+    answer = model(question)
+    return answer.strip() or "Модель не вернула ответ. Попробуйте задать вопрос иначе."

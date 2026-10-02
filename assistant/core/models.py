@@ -27,7 +27,7 @@ class AppGroup(models.Model):
     apps = models.ManyToManyField(AppCommand)
     
     def __str__(self):
-        return f"Группа додатків {self.apps.all()}"
+        return f"Група додатків {self.name}"
 
 class ChatMessage(models.Model):
     author = models.CharField(max_length=255)

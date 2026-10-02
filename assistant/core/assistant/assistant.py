@@ -14,7 +14,10 @@ class Assistant:
         self.running = True
 
         with open(COMMANDS_JSON_PATH, encoding="utf-8") as f:
-            self.matcher = CommandMatcher(json.load(f))
+            commands = json.load(f)
+            
+        commands.pop("answers", None)
+        self.matcher = CommandMatcher(commands)
 
         self.listener = create_listener(lambda: self.running)
         self.ctx = ActionContext(

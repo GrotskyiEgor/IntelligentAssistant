@@ -742,7 +742,7 @@ class MainWindow(QMainWindow):
             line = line.strip()
 
             if line.startswith("ANSWER:"):
-                answer = line[len("Відповідь:"):].strip()
+                answer = line[len("ANSWER:"):].strip()
 
                 if answer:
                     self.add_message("Помічник", answer)

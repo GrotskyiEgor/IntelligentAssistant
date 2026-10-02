@@ -34,7 +34,7 @@ class WhisperListener(Listener):
                 elif speaking:
                     buffer.append(data)
                     silence += 1
-                    if silence >= 40:
+                    if silence >= 80:
                         audio = np.concatenate(buffer).flatten()
                         buffer, silence, speaking = [], 0, False
                         if self._too_quiet_or_short(audio):
