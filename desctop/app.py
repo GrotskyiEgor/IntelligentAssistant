@@ -120,6 +120,7 @@ class MainWindow(QMainWindow):
 
         self.main_panel_background_frame.setObjectName("mainPanelBackground")
         self.commands_frame.setObjectName("commandsFrame")
+
         for frame, selector in (
             (self.main_panel_background_frame, "QFrame#mainPanelBackground"),
             (self.messages_frame_back, "QFrame#messages_frame_back"),
@@ -132,12 +133,12 @@ class MainWindow(QMainWindow):
             
         if self.settings:
             self.settings.apply_theme(settings, sync_main=False)
+
         self.setStyleSheet(f"background: {theme['window']}; color: {theme['foreground']};")
         title_bar_color.set(self, color=theme["window"])
 
     def create_main_panel(self):
         self.main_panel_background_frame = QFrame()
-        self.main_panel_background_frame.setFrameShape(QFrame.Shape.NoFrame)
         self.main_panel_background_frame.setFrameShape(QFrame.Shape.NoFrame)
         self.main_panel_background_frame.setFixedSize(270, 660)
 
@@ -275,6 +276,7 @@ class MainWindow(QMainWindow):
         messages_container = QWidget()
         messages_container.setObjectName("messages_container")
         messages_container.setStyleSheet("background: transparent;")
+
         self.messages_container_layout = QVBoxLayout(messages_container)
         self.messages_container_layout.setContentsMargins(0, 0, 0, 0)
         self.messages_container_layout.setSpacing(12)
@@ -284,6 +286,7 @@ class MainWindow(QMainWindow):
         self.messages_layout.addWidget(self.messages_area)
 
         self.create_input()
+
         self.messages_layout.addWidget(
             self.input_frame,
             alignment=Qt.AlignmentFlag.AlignHCenter
@@ -327,6 +330,7 @@ class MainWindow(QMainWindow):
 
         self.send_btn = QPushButton("▶")
         self.send_btn.setFixedSize(45, 45)
+
         self.send_btn.setStyleSheet("""
             QPushButton {
                 background-color: #7565f7;
@@ -339,6 +343,7 @@ class MainWindow(QMainWindow):
                 background-color: #6152de;
             }
         """)
+
         self.send_btn.clicked.connect(self.send_message)
 
         input_layout.addWidget(self.message_input)
@@ -360,6 +365,7 @@ class MainWindow(QMainWindow):
         self.assistant_process.write(
             (text + "\n").encode("utf-8")
         )
+
         self.assistant_process.waitForBytesWritten(1000)
 
         self.message_input.clear()
@@ -369,57 +375,59 @@ class MainWindow(QMainWindow):
 
         row = QWidget()
         row.setStyleSheet("background: transparent;")
-        # row_layout = QHBoxLayout(row)
 
-        message = QLabel(f"<b>{sender}:</b> {text}")
-        message.setWordWrap(True)
-        message.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                background: transparent;
-                border: none;
-            }
-        """)
-
-        message.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
-
-        row.setStyleSheet("background: transparent;")
         row_layout = QHBoxLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.setSpacing(0)
 
         bubble = QFrame()
+
         bubble.setObjectName(
             "messageBubbleSent" if is_outgoing else "messageBubbleReceived"
         )
+
         bubble.setStyleSheet(
             f"background-color: {'#7565f7' if self.preferences.get('accent', 'purple') == 'purple' else '#4f7cff'}; border-radius: 14px;"
             if is_outgoing
             else "background-color: #454545; border-radius: 14px;"
         )
-        bubble.setMaximumWidth(440)
+
+        bubble.setMaximumWidth(440 if is_outgoing else 620)
+
         bubble_layout = QVBoxLayout(bubble)
         bubble_layout.setContentsMargins(12, 8, 12, 8)
         bubble_layout.setSpacing(3)
 
         sender_label = QLabel(sender)
         sender_label.setObjectName("messageSender")
-        body = QLabel(text)
+
+        safe_text = "\u200b".join(
+            text[i:i + 25]
+            for i in range(0, len(text), 25)
+        )
+
+        body = QLabel(safe_text)
         body.setObjectName("messageText")
         body.setWordWrap(True)
-        body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        body.setMaximumWidth(410)
+        body.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        body.setMaximumWidth(410 if is_outgoing else 590)
 
         bubble_layout.addWidget(sender_label)
         bubble_layout.addWidget(body)
 
         if is_outgoing:
             row_layout.addStretch(1)
-            row_layout.addWidget(bubble, alignment=Qt.AlignmentFlag.AlignRight)
+            row_layout.addWidget(
+                bubble,
+                alignment=Qt.AlignmentFlag.AlignRight
+            )
         else:
-            row_layout.addWidget(bubble, alignment=Qt.AlignmentFlag.AlignLeft)
+            row_layout.addWidget(
+                bubble,
+                alignment=Qt.AlignmentFlag.AlignLeft
+            )
             row_layout.addStretch(1)
 
         self.messages_container_layout.insertWidget(
@@ -427,9 +435,12 @@ class MainWindow(QMainWindow):
             row
         )
 
-        QTimer.singleShot(0, lambda: self.messages_area.verticalScrollBar().setValue(
-            self.messages_area.verticalScrollBar().maximum()
-        ))
+        QTimer.singleShot(
+            0,
+            lambda: self.messages_area.verticalScrollBar().setValue(
+                self.messages_area.verticalScrollBar().maximum()
+            )
+        )
 
     def create_command_panel(self):
         self.commands_frame = QFrame()
@@ -482,7 +493,6 @@ class MainWindow(QMainWindow):
         self.commands_layout.setContentsMargins(8, 8, 8, 8)
         self.commands_layout.setSpacing(10)
 
-        # Блок "Керування асистентом"
         assistant_frame = QFrame()
         assistant_frame.setObjectName("section_frame")
         assistant_frame.setSizePolicy(
@@ -540,7 +550,6 @@ class MainWindow(QMainWindow):
 
         self.commands_layout.addWidget(assistant_frame)
 
-        # Блок "Групи"
         groups_frame = QFrame()
         groups_frame.setObjectName("section_frame")
         groups_frame.setSizePolicy(
@@ -594,7 +603,6 @@ class MainWindow(QMainWindow):
 
         self.commands_layout.addWidget(groups_frame)
 
-        # Блок "Нова команда"
         new_command_frame = QFrame()
         new_command_frame.setObjectName("section_frame")
         new_command_frame.setSizePolicy(
@@ -622,6 +630,7 @@ class MainWindow(QMainWindow):
             "Нова команда",
             new_command_frame
         )
+
         self.new_command_btn.setFixedSize(150, 45)
 
         new_command_layout.addWidget(
@@ -699,8 +708,11 @@ class MainWindow(QMainWindow):
                 on_stopped()
             return
 
-        def _handle_finished():
-            process.finished.disconnect(_handle_finished)
+        def _handle_finished(*args):
+            try:
+                process.finished.disconnect(_handle_finished)
+            except (TypeError, RuntimeError):
+                pass
 
             if on_stopped:
                 on_stopped()
@@ -742,7 +754,7 @@ class MainWindow(QMainWindow):
             line = line.strip()
 
             if line.startswith("ANSWER:"):
-                answer = line[len("Відповідь:"):].strip()
+                answer = line[len("ANSWER:"):].strip()
 
                 if answer:
                     self.add_message("Помічник", answer)
@@ -758,35 +770,16 @@ class MainWindow(QMainWindow):
         if text:
             print("ERROR:", text, end="")
 
-    def assistant_fineshed(self):
+    def assistant_fineshed(self, *args):
         print("Помічник завершив роботу.")
 
-        self.assistant_process.deleteLater()
-        self.assistant_process = None
+        if self.assistant_process is not None:
+            self.assistant_process.deleteLater()
+            self.assistant_process = None
 
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.restart_btn.setEnabled(False)
-
-    # def resizeEvent(self, event):
-    #     super().resizeEvent(event)
-
-    #     self.main_panel_background_frame.setGeometry(
-    #         0, 0,
-    #         270,
-    #         self.height()
-    #     )
-
-    #     self.messages_frame.setFixedWidth(
-    #         self.messages_frame_back.width()
-    #     )
-
-    #     self.commands_frame.setGeometry(
-    #         self.width() - 270,
-    #         0,
-    #         270,
-    #         self.height()
-    #     )
 
     def closeEvent(self, e):
         if self.assistant_process is not None:
@@ -795,4 +788,5 @@ class MainWindow(QMainWindow):
 
         if self.settings:
             self.settings.close()
+
         e.accept()
