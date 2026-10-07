@@ -1,5 +1,7 @@
-import PyQt6 as qt
-import sys, os, subprocess, json, re
+import os
+import re
+import sys
+import json
 
 from hPyT import *
 from PyQt6.QtWidgets import *
@@ -16,12 +18,14 @@ class MainWindow(QMainWindow):
         self.assistant_process = None
         self.settings = None
 
+
         try:
             with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "settings.json"), "r", encoding="utf-8") as file:
                 self.preferences = json.load(file)
         except Exception as error:
             print(error)
             self.preferences = {}
+
 
         self.setWindowTitle("Голосовий помічник")
         self.setMinimumSize(960, 540)
@@ -107,9 +111,9 @@ class MainWindow(QMainWindow):
     def apply_theme(self, settings):
         settings = {**self.preferences, **settings}
         self.preferences = settings
-        theme, accent = get_theme_colors(settings)
-        palette = {**theme["replace"], **accent["replace"]}
-        button_text = "white" if settings.get("accent") in {"purple", "blue", "lime", "orange"} else "#2d2d2d"
+        self.theme, self.accent = get_theme_colors(settings)
+        palette = {**self.theme["replace"], **self.accent["replace"]}
+        button_text = "white" if settings.get("self.accent") in {"purple", "blue", "lime", "orange"} else "#2d2d2d"
         color_pattern = re.compile("|".join(re.escape(color) for color in palette), re.IGNORECASE)
 
         for widget in [self, *self.findChildren(QWidget)]:
@@ -123,6 +127,7 @@ class MainWindow(QMainWindow):
 
         self.main_panel_background_frame.setObjectName("mainPanelBackground")
         self.commands_frame.setObjectName("commandsFrame")
+
         for frame, selector in (
             (self.main_panel_background_frame, "QFrame#mainPanelBackground"),
             (self.messages_frame_back, "QFrame#messages_frame_back"),
@@ -130,13 +135,13 @@ class MainWindow(QMainWindow):
         ):
             frame.setStyleSheet(
                 f"{frame.styleSheet()}\n"
-                f"{selector} {{ background-color: {theme['panel']}; border-radius: 16px; }}"
+                f"{selector} {{ background-color: {self.theme['panel']}; border-radius: 16px; }}"
             )
 
         self.menubar.setStyleSheet(f"""
             QMenuBar {{
-                color: {theme['foreground']};
-                background-color: {theme['window']};
+                color: {self.theme['foreground']};
+                background-color: {self.theme['window']};
                 border: none;
                 padding: 2px 6px;
                 font-size: 13px;
@@ -144,22 +149,22 @@ class MainWindow(QMainWindow):
             }}
 
             QMenuBar::item {{
-                background-color: {theme['panel']};
-                color: {theme['foreground']};
+                background-color: {self.theme['panel']};
+                color: {self.theme['foreground']};
                 padding: 6px 14px;
                 margin: 2px;
                 border-radius: 8px;
             }}
 
             QMenuBar::item:selected {{
-                background-color: {accent['primary']};
+                background-color: {self.accent['primary']};
                 color: white;
             }}
 
             QMenu {{
-                background-color: {theme['panel']};
-                color: {theme['foreground']};
-                border: 1px solid {theme['border']};
+                background-color: {self.theme['panel']};
+                color: {self.theme['foreground']};
+                border: 1px solid {self.theme['border']};
                 border-radius: 11px;
                 padding: 4px;
             }}
@@ -169,11 +174,11 @@ class MainWindow(QMainWindow):
                 font-weight: bold;
                 padding: 6px 25px;
                 border-radius: 8px;
-                color: {theme['foreground']};
+                color: {self.theme['foreground']};
             }}
 
             QMenu::item:selected {{
-                background-color: {accent['primary']};
+                background-color: {self.accent['primary']};
                 color: white;
             }}
         """)
@@ -185,7 +190,7 @@ class MainWindow(QMainWindow):
             }}
 
             QLabel {{
-                color: {theme['foreground']};
+                color: {self.theme['foreground']};
                 background: transparent;
                 border: none;
             }}
@@ -201,18 +206,18 @@ class MainWindow(QMainWindow):
             }}
 
             QFrame#messageBubbleSent {{
-                background-color: {accent['primary']};
+                background-color: {self.accent['primary']};
                 border-radius: 14px;
             }}
 
             QFrame#messageBubbleReceived {{
-                background-color: {theme['field']};
-                border: 1px solid {theme['border']};
+                background-color: {self.theme['field']};
+                border: 1px solid {self.theme['border']};
                 border-radius: 14px;
             }}
 
             QLabel#messageSenderAssistant {{
-                color: {accent['primary']};
+                color: {self.accent['primary']};
                 font-size: 12px;
                 font-weight: bold;
             }}
@@ -224,7 +229,7 @@ class MainWindow(QMainWindow):
             }}
 
             QLabel#messageText {{
-                color: {theme['foreground']};
+                color: {self.theme['foreground']};
                 font-size: 15px;
             }}
 
@@ -236,33 +241,33 @@ class MainWindow(QMainWindow):
         for bubble in self.messages_frame.findChildren(QFrame):
             if bubble.objectName() == "messageBubbleSent":
                 bubble.setStyleSheet(
-                    f"background-color: {accent['primary']}; border-radius: 14px;"
+                    f"background-color: {self.accent['primary']}; border-radius: 14px;"
                 )
             elif bubble.objectName() == "messageBubbleReceived":
                 bubble.setStyleSheet(
-                    f"background-color: {theme['field']}; border: 1px solid {theme['border']}; border-radius: 14px;"
+                    f"background-color: {self.theme['field']}; border: 1px solid {self.theme['border']}; border-radius: 14px;"
                 )
 
         self.commands_frame.setStyleSheet(f"""
             QFrame#commandsFrame {{
-                background-color: {theme['panel']};
+                background-color: {self.theme['panel']};
                 border-radius: 16px;
             }}
 
             QFrame#section_frame {{
-                background-color: {theme['field']};
-                border: 1px solid {theme['border']};
+                background-color: {self.theme['field']};
+                border: 1px solid {self.theme['border']};
                 border-radius: 16px;
             }}
 
             QLabel {{
-                color: {theme['foreground']};
+                color: {self.theme['foreground']};
                 background: transparent;
                 border: none;
             }}
 
             QPushButton {{
-                background-color: {accent['primary']};
+                background-color: {self.accent['primary']};
                 color: {button_text};
                 border: none;
                 border-radius: 10px;
@@ -271,34 +276,34 @@ class MainWindow(QMainWindow):
             }}
 
             QPushButton:hover {{
-                background-color: {accent['hover']};
+                background-color: {self.accent['hover']};
                 color: {button_text};
             }}
 
             QPushButton:pressed {{
-                background-color: {accent['hover']};
+                background-color: {self.accent['hover']};
             }}
 
             QPushButton:disabled {{
-                background-color: {theme['field']};
-                color: {theme['muted']};
+                background-color: {self.theme['field']};
+                color: {self.theme['muted']};
             }}
         """)
 
-        self.main_panel_title.setStyleSheet(f"QLabel {{ color: {theme['foreground']}; background: transparent; border: none; font-size: 20px; font-weight: bold; }}")
-        self.title.setStyleSheet(f"color: {theme['foreground']}; background: transparent; font-size: 20px; font-weight: bold; padding-bottom: 5px;")
-        self.input_frame.setStyleSheet(f"QFrame#inputFrame {{ background-color: {theme['field']}; border-radius: 20px; border: 1px solid {theme['border']}; }}")
-        self.message_input.setStyleSheet(f"QLineEdit {{ border: none; background: transparent; color: {theme['foreground']}; font-size: 16px; }}")
-        self.send_btn.setStyleSheet(f"QPushButton {{ background-color: {accent['primary']}; color: {button_text}; border-radius: 14px; font-size: 32px; }} QPushButton:hover {{ background-color: {accent['hover']}; color: white; }}")
+        self.main_panel_title.setStyleSheet(f"QLabel {{ color: {self.theme['foreground']}; background: transparent; border: none; font-size: 20px; font-weight: bold; }}")
+        self.title.setStyleSheet(f"color: {self.theme['foreground']}; background: transparent; font-size: 20px; font-weight: bold; padding-bottom: 5px;")
+        self.input_frame.setStyleSheet(f"QFrame#inputFrame {{ background-color: {self.theme['field']}; border-radius: 20px; border: 1px solid {self.theme['border']}; }}")
+        self.message_input.setStyleSheet(f"QLineEdit {{ border: none; background: transparent; color: {self.theme['foreground']}; font-size: 16px; }}")
+        self.send_btn.setStyleSheet(f"QPushButton {{ background-color: {self.accent['primary']}; color: {button_text}; border-radius: 14px; font-size: 32px; }} QPushButton:hover {{ background-color: {self.accent['hover']}; color: white; }}")
 
         if self.settings:
             self.settings.apply_theme(settings, sync_main=False)
-        self.setStyleSheet(f"background: {theme['window']}; color: {theme['foreground']};")
-        title_bar_color.set(self, color=theme["window"])
+
+        self.setStyleSheet(f"background: {self.theme['window']}; color: {self.theme['foreground']};")
+        title_bar_color.set(self, color=self.theme["window"])
 
     def create_main_panel(self):
         self.main_panel_background_frame = QFrame()
-        self.main_panel_background_frame.setFrameShape(QFrame.Shape.NoFrame)
         self.main_panel_background_frame.setFrameShape(QFrame.Shape.NoFrame)
         self.main_panel_background_frame.setFixedSize(270, 660)
 
@@ -436,6 +441,7 @@ class MainWindow(QMainWindow):
         messages_container = QWidget()
         messages_container.setObjectName("messages_container")
         messages_container.setStyleSheet("background: transparent;")
+
         self.messages_container_layout = QVBoxLayout(messages_container)
         self.messages_container_layout.setContentsMargins(0, 0, 0, 0)
         self.messages_container_layout.setSpacing(12)
@@ -445,6 +451,7 @@ class MainWindow(QMainWindow):
         self.messages_layout.addWidget(self.messages_area)
 
         self.create_input()
+
         self.messages_layout.addWidget(
             self.input_frame,
             alignment=Qt.AlignmentFlag.AlignHCenter
@@ -488,6 +495,7 @@ class MainWindow(QMainWindow):
 
         self.send_btn = QPushButton("▶")
         self.send_btn.setFixedSize(45, 45)
+
         self.send_btn.setStyleSheet("""
             QPushButton {
                 background-color: #7565f7;
@@ -500,6 +508,7 @@ class MainWindow(QMainWindow):
                 background-color: #6152de;
             }
         """)
+
         self.send_btn.clicked.connect(self.send_message)
 
         input_layout.addWidget(self.message_input)
@@ -521,6 +530,7 @@ class MainWindow(QMainWindow):
         self.assistant_process.write(
             (text + "\n").encode("utf-8")
         )
+
         self.assistant_process.waitForBytesWritten(1000)
 
         self.message_input.clear()
@@ -530,23 +540,7 @@ class MainWindow(QMainWindow):
 
         row = QWidget()
         row.setStyleSheet("background: transparent;")
-        # row_layout = QHBoxLayout(row)
 
-        message = QLabel(f"<b>{sender}:</b> {text}")
-        message.setWordWrap(True)
-        message.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                background: transparent;
-                border: none;
-            }
-        """)
-
-        message.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
-
-        row.setStyleSheet("background: transparent;")
         row_layout = QHBoxLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.setSpacing(0)
@@ -555,33 +549,58 @@ class MainWindow(QMainWindow):
         bubble.setObjectName(
             "messageBubbleSent" if is_outgoing else "messageBubbleReceived"
         )
-        theme, accent = get_theme_colors(self.preferences)
-        bubble.setStyleSheet(
-            f"background-color: {accent['primary']}; border-radius: 14px;"
-            if is_outgoing
-            else f"background-color: {theme['field']}; border: 1px solid {theme['border']}; border-radius: 14px;"
-        )
-        bubble.setMaximumWidth(440)
+
+        if is_outgoing:
+            bubble.setStyleSheet(
+                f"QFrame#messageBubbleSent {{ background-color: {self.accent['primary']}; border-radius: 14px; }}"
+            )
+        else:
+            bubble.setStyleSheet(
+                f"QFrame#messageBubbleReceived {{ background-color: {self.theme['field']}; "
+                f"border: 1px solid {self.theme['border']}; border-radius: 14px; }}"
+            )
+
+        bubble.setMaximumWidth(440 if is_outgoing else 620)
+
         bubble_layout = QVBoxLayout(bubble)
         bubble_layout.setContentsMargins(12, 8, 12, 8)
         bubble_layout.setSpacing(3)
 
         sender_label = QLabel(sender)
-        sender_label.setObjectName("messageSenderUser" if is_outgoing else "messageSenderAssistant")
-        body = QLabel(text)
+        sender_label.setObjectName(
+            "messageSenderUser" if is_outgoing else "messageSenderAssistant"
+        )
+        sender_label.setStyleSheet("background: transparent; border: none;")
+
+        safe_text = "\u200b".join(
+            text[i:i + 25]
+            for i in range(0, len(text), 25)
+        )
+
+        body = QLabel(safe_text)
         body.setObjectName("messageTextSent" if is_outgoing else "messageText")
+        body.setStyleSheet("background: transparent; border: none;")
+        body.setObjectName("messageText")
         body.setWordWrap(True)
-        body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        body.setMaximumWidth(410)
+        body.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        body.setMaximumWidth(410 if is_outgoing else 590)
 
         bubble_layout.addWidget(sender_label)
         bubble_layout.addWidget(body)
 
         if is_outgoing:
             row_layout.addStretch(1)
-            row_layout.addWidget(bubble, alignment=Qt.AlignmentFlag.AlignRight)
+            row_layout.addWidget(
+                bubble,
+                alignment=Qt.AlignmentFlag.AlignRight
+            )
         else:
-            row_layout.addWidget(bubble, alignment=Qt.AlignmentFlag.AlignLeft)
+            row_layout.addWidget(
+                bubble,
+                alignment=Qt.AlignmentFlag.AlignLeft
+            )
             row_layout.addStretch(1)
 
         self.messages_container_layout.insertWidget(
@@ -589,9 +608,12 @@ class MainWindow(QMainWindow):
             row
         )
 
-        QTimer.singleShot(0, lambda: self.messages_area.verticalScrollBar().setValue(
-            self.messages_area.verticalScrollBar().maximum()
-        ))
+        QTimer.singleShot(
+            0,
+            lambda: self.messages_area.verticalScrollBar().setValue(
+                self.messages_area.verticalScrollBar().maximum()
+            )
+        )
 
     def assistant_display_name(self):
         return self.preferences.get("name") or "Помічник"
@@ -647,7 +669,6 @@ class MainWindow(QMainWindow):
         self.commands_layout.setContentsMargins(8, 8, 8, 8)
         self.commands_layout.setSpacing(10)
 
-        # Блок "Керування асистентом"
         assistant_frame = QFrame()
         assistant_frame.setObjectName("section_frame")
         assistant_frame.setSizePolicy(
@@ -705,7 +726,6 @@ class MainWindow(QMainWindow):
 
         self.commands_layout.addWidget(assistant_frame)
 
-        # Блок "Групи"
         groups_frame = QFrame()
         groups_frame.setObjectName("section_frame")
         groups_frame.setSizePolicy(
@@ -759,7 +779,6 @@ class MainWindow(QMainWindow):
 
         self.commands_layout.addWidget(groups_frame)
 
-        # Блок "Нова команда"
         new_command_frame = QFrame()
         new_command_frame.setObjectName("section_frame")
         new_command_frame.setSizePolicy(
@@ -787,6 +806,7 @@ class MainWindow(QMainWindow):
             "Нова команда",
             new_command_frame
         )
+
         self.new_command_btn.setFixedSize(150, 45)
 
         new_command_layout.addWidget(
@@ -864,8 +884,11 @@ class MainWindow(QMainWindow):
                 on_stopped()
             return
 
-        def _handle_finished():
-            process.finished.disconnect(_handle_finished)
+        def _handle_finished(*args):
+            try:
+                process.finished.disconnect(_handle_finished)
+            except (TypeError, RuntimeError):
+                pass
 
             if on_stopped:
                 on_stopped()
@@ -923,35 +946,16 @@ class MainWindow(QMainWindow):
         if text:
             print("ERROR:", text, end="")
 
-    def assistant_fineshed(self):
+    def assistant_fineshed(self, *args):
         print("Помічник завершив роботу.")
 
-        self.assistant_process.deleteLater()
-        self.assistant_process = None
+        if self.assistant_process is not None:
+            self.assistant_process.deleteLater()
+            self.assistant_process = None
 
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.restart_btn.setEnabled(False)
-
-    # def resizeEvent(self, event):
-    #     super().resizeEvent(event)
-
-    #     self.main_panel_background_frame.setGeometry(
-    #         0, 0,
-    #         270,
-    #         self.height()
-    #     )
-
-    #     self.messages_frame.setFixedWidth(
-    #         self.messages_frame_back.width()
-    #     )
-
-    #     self.commands_frame.setGeometry(
-    #         self.width() - 270,
-    #         0,
-    #         270,
-    #         self.height()
-    #     )
 
     def closeEvent(self, e):
         if self.assistant_process is not None:
@@ -960,4 +964,5 @@ class MainWindow(QMainWindow):
 
         if self.settings:
             self.settings.close()
+
         e.accept()

@@ -25,9 +25,9 @@ def load_actions():
     for module in pkgutil.iter_modules(actions_pkg.__path__):
         if module.name != "base":
             importlib.import_module(f"{actions_pkg.__name__}.{module.name}")
-            print(f"Підключено дію-модуль: {module.name}", flush=True)
+            # print(f"Підключено дію-модуль: {module.name}", flush=True)
 
-    print(f"Зареєстровані дії: {sorted(ACTIONS)}", flush=True)
+    # print(f"Зареєстровані дії: {sorted(ACTIONS)}", flush=True)
 
 def load_commands_map():
     with open(COMMANDS_JSON_PATH, "r", encoding="utf-8") as file:
@@ -42,9 +42,10 @@ class Command(BaseCommand):
         commands_map = load_commands_map()
         commands_map.pop("answers", None)
 
-        unknown = set(commands_map) - set(ACTIONS)
-        if unknown:
-            print(f"Увага: у commands.json є дії без реалізації: {sorted(unknown)}", flush=True)
+        # unknown = set(commands_map) - set(ACTIONS)
+
+        # if unknown:
+        #     print(f"Увага: у commands.json є дії без реалізації: {sorted(unknown)}", flush=True)
 
         matcher = CommandMatcher(commands_map)
         running = threading.Event()
@@ -77,7 +78,7 @@ class Command(BaseCommand):
 
         ctx = ActionContext(listen=listen, speak=speak, stop=stop)
 
-        print("Завантажую розпізнавання мови...", flush=True)
+        # print("Завантажую розпізнавання мови...", flush=True)
         listener = create_listener(is_running)
 
         def mic_loop():
