@@ -749,13 +749,18 @@ class MainWindow(QMainWindow):
             }
         """)
 
-        self.group1_btn = QPushButton("Група 1", groups_frame)
-        self.group1_btn.setFixedSize(105, 45)
-        self.group1_btn.clicked.connect(self.group1_clicked)
+        # Разберись с lambda функциями и генераторами for в python
 
-        self.group2_btn = QPushButton("Група 2", groups_frame)
-        self.group2_btn.setFixedSize(105, 45)
-        self.group2_btn.clicked.connect(self.group2_clicked)
+        # Туту вызываешь эту функцию и отображаешь реальные названия групп, список всех приложений что бы их открыть [(name, [app_list]), (name, [app_list])]
+        # all_groups = func()
+        
+        # for group in all_groups:
+            # self.group1_btn = QPushButton("Група 1", groups_frame)
+            # self.group1_btn.setFixedSize(105, 45)
+
+            # Создай лямбда функцию которая откроет все app при нажатии
+            # self.group1_btn.clicked.connect(self.group1_clicked)
+
 
         groups_layout.addWidget(
             self.groups_label,
@@ -906,12 +911,6 @@ class MainWindow(QMainWindow):
         self.stop_assintant(
             on_stopped=self.start_assintant
         )
-
-    def group1_clicked(self):
-        print("Натиснуто групу 1")
-
-    def group2_clicked(self):
-        print("Натиснуто групу 2")
 
     def read_output(self):
         data = self.assistant_process.readAllStandardOutput()
