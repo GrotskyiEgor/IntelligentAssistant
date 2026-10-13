@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt, QTimer, QProcess, QProcessEnvironment
 
 from settings_app import SettingsWindow
+from calendar_app import CalendarWindow
 from theme import get_theme_colors
 
 
@@ -17,6 +18,7 @@ class MainWindow(QMainWindow):
 
         self.assistant_process = None
         self.settings = None
+        self.calendar = None
 
 
         try:
@@ -86,6 +88,9 @@ class MainWindow(QMainWindow):
 
         settings_act = self.menu.addAction("Налаштування")
         settings_act.triggered.connect(self.open_settings)
+
+        calendar_act = self.menu.addAction("Календар")
+        calendar_act.triggered.connect(self.open_calendar)
 
         exit_act = self.menu.addAction("Вихід")
         exit_act.triggered.connect(self.close)
@@ -298,6 +303,9 @@ class MainWindow(QMainWindow):
 
         if self.settings:
             self.settings.apply_theme(settings, sync_main=False)
+
+        if self.calendar:
+            self.calendar.apply_theme(settings)
 
         self.setStyleSheet(f"background: {self.theme['window']}; color: {self.theme['foreground']};")
         title_bar_color.set(self, color=self.theme["window"])
@@ -770,16 +778,6 @@ class MainWindow(QMainWindow):
         groups_buttons_layout = QHBoxLayout()
         groups_buttons_layout.setSpacing(10)
 
-        groups_buttons_layout.addWidget(
-            self.group1_btn,
-            alignment=Qt.AlignmentFlag.AlignHCenter
-        )
-
-        groups_buttons_layout.addWidget(
-            self.group2_btn,
-            alignment=Qt.AlignmentFlag.AlignHCenter
-        )
-
         groups_layout.addLayout(groups_buttons_layout)
 
         self.commands_layout.addWidget(groups_frame)
@@ -833,6 +831,10 @@ class MainWindow(QMainWindow):
     def open_settings(self):
         self.settings = SettingsWindow(self)
         self.settings.show()
+
+    def open_calendar(self):
+        self.calendar = CalendarWindow(self)
+        self.calendar.show()
 
     def start_assintant(self):
         if self.assistant_process is not None:
@@ -963,5 +965,8 @@ class MainWindow(QMainWindow):
 
         if self.settings:
             self.settings.close()
+
+        if self.calendar:
+            self.calendar.close()
 
         e.accept()
