@@ -755,11 +755,14 @@ class MainWindow(QMainWindow):
         # all_groups = func()
         
         # for group in all_groups:
-            # self.group1_btn = QPushButton("Група 1", groups_frame)
-            # self.group1_btn.setFixedSize(105, 45)
+    
+        self.group1_btn = QPushButton("Група 1", groups_frame)
+        self.group1_btn.setFixedSize(105, 45)
 
-            # Создай лямбда функцию которая откроет все app при нажатии
-            # self.group1_btn.clicked.connect(self.group1_clicked)
+        # Создай лямбда функцию которая откроет все app при нажатии
+
+        self.group2_btn = QPushButton("Група 2", groups_frame)
+        self.group2_btn.setFixedSize(105, 45)
 
 
         groups_layout.addWidget(

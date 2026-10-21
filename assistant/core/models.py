@@ -36,3 +36,5 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"Автор - {self.author}; Текст - {self.text[:20]}"
+
+# Коля

@@ -8,6 +8,7 @@ GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 def ans(text: str, model: AnswerModel | None = None) -> str:
     question = text.strip()
+    
     if not question:
         return "Напишіть запитання, і я постараюся на нього відповісти."
 
@@ -15,10 +16,12 @@ def ans(text: str, model: AnswerModel | None = None) -> str:
         answer = model(question)
     else:
         api_key = os.getenv("GEMINI_API_KEY")
+
         if not api_key:
             raise RuntimeError("Вкажіть API-ключ у змінній оточення GEMINI_API_KEY.")
 
         client = genai.Client(api_key=api_key)
+        
         response = client.models.generate_content(
             model=GEMINI_MODEL,
             contents=question,

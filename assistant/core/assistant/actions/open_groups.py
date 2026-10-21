@@ -3,7 +3,7 @@ import os
 from core.models import AppGroup
 
 from .base import Action, register
-from .delete import parse_number
+from .numbers import parse_number
 from ..nlp.dialog import MAX_ATTEMPTS, ask_text
 from ..nlp.text import normalize_text
 

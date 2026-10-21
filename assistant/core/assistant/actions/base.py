@@ -10,7 +10,7 @@ class ActionContext:
     listen: Callable[[], str | None]
     speak: Callable[[str], None]
     stop: Callable[[], None]
-
+    # show: Callable[[str], None]
 
 class Action(ABC):
     name: str
