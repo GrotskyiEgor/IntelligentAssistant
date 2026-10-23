@@ -33,20 +33,12 @@ class AssistantProcessMixin:
 
         python = sys.executable
 
-        base_dir = os.path.dirname(
-            os.path.dirname(os.path.abspath(__file__))
-        )
+        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        django_dir = os.path.join(root_dir, "assistant")
+        manage_py = os.path.join(django_dir, "manage.py")
 
-        manage_py = os.path.join(
-            base_dir,
-            "assistant",
-            "manage.py"
-        )
-
-        self.assistant_process.start(
-            python,
-            [manage_py, "run_assistant"]
-        )
+        self.assistant_process.setWorkingDirectory(django_dir)
+        self.assistant_process.start(python, [manage_py, "run_assistant"])
 
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)

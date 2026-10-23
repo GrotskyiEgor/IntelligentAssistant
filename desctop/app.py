@@ -5,13 +5,12 @@ from hPyT import title_bar_color
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QHBoxLayout, QMainWindow, QMenuBar, QWidget
 
-from app_chat import ChatMixin
-from app_commands import CommandPanelMixin
-from app_messages import MessageMixin
-from app_process import AssistantProcessMixin
-from app_theme import ThemeMixin
+from app_parts.app_chat import ChatMixin
+from app_parts.app_commands import CommandPanelMixin
+from app_parts.app_messages import MessageMixin
+from app_parts.app_process import AssistantProcessMixin
+from app_parts.app_theme import ThemeMixin
 from settings_app import SettingsWindow
-
 
 class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, AssistantProcessMixin, QMainWindow):
     def __init__(self):

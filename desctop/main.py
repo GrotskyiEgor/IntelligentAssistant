@@ -1,7 +1,16 @@
 import os
 import sys
-import ctypes
+from pathlib import Path
 
+DJANGO_DIR = Path(__file__).resolve().parent.parent / "assistant"
+sys.path.insert(0, str(DJANGO_DIR))
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "assistant.settings")
+
+import django
+django.setup()
+
+import ctypes
 import PyQt6 as qt 
 
 from PyQt6.QtGui import QIcon

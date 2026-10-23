@@ -1,5 +1,8 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout
+from PyQt6.QtWidgets import QGridLayout
+
+from core.utils.groups import get_groups, open_apps
 
 
 class CommandPanelMixin:
@@ -134,42 +137,39 @@ class CommandPanelMixin:
             }
         """)
 
-        # Разберись с lambda функциями и генераторами for в python
-
-        # Туту вызываешь эту функцию и отображаешь реальные названия групп, список всех приложений что бы их открыть [(name, [app_list]), (name, [app_list])]
-        # all_groups = func()
-
-        # for group in all_groups:
-
-        self.group1_btn = QPushButton("Група 1", groups_frame)
-        self.group1_btn.setFixedSize(105, 45)
-
-        # Создай лямбда функцию которая откроет все app при нажатии
-
-        self.group2_btn = QPushButton("Група 2", groups_frame)
-        self.group2_btn.setFixedSize(105, 45)
-
-
         groups_layout.addWidget(
             self.groups_label,
             alignment=Qt.AlignmentFlag.AlignHCenter
         )
 
-        groups_buttons_layout = QHBoxLayout()
-        groups_buttons_layout.setSpacing(10)
+        self.groups_grid = QGridLayout()
+        self.groups_grid.setSpacing(10)
+        self.group_buttons = []
 
-        groups_buttons_layout.addWidget(
-            self.group1_btn,
-            alignment=Qt.AlignmentFlag.AlignHCenter
-        )
+        all_groups = get_groups()
+        # all_groups = [
+        #     ("Робота", ["Telegram", "Chrome", "Discord"]),
+        #     ("ігри", ["VS Code", "Aseprite"]),
+        # ]
 
-        groups_buttons_layout.addWidget(
-            self.group2_btn,
-            alignment=Qt.AlignmentFlag.AlignHCenter
-        )
+        if not all_groups:
+            empty_label = QLabel("Груп ще немає")
+            empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            groups_layout.addWidget(empty_label)
+        else:
+            for index, (name, apps) in enumerate(all_groups):
+                btn = QPushButton(name, groups_frame)
+                btn.setFixedSize(105, 45)
+                
+                tooltip_text = "\n".join(getattr(app, 'name', str(app)) for app in apps)
+                btn.setToolTip(tooltip_text or "Порожня група")
+                
+                btn.clicked.connect(lambda checked=False, current_apps=apps: open_apps(current_apps))
 
-        groups_layout.addLayout(groups_buttons_layout)
+                self.groups_grid.addWidget(btn, index // 2, index % 2)
+                self.group_buttons.append(btn)
 
+        groups_layout.addLayout(self.groups_grid)
         self.commands_layout.addWidget(groups_frame)
 
         new_command_frame = QFrame()
@@ -199,7 +199,6 @@ class CommandPanelMixin:
             "Нова команда",
             new_command_frame
         )
-
         self.new_command_btn.setFixedSize(150, 45)
 
         new_command_layout.addWidget(
@@ -213,7 +212,6 @@ class CommandPanelMixin:
         )
 
         self.commands_layout.addWidget(new_command_frame)
-
         self.commands_layout.addStretch()
 
         self.main_layout.addWidget(self.commands_frame)

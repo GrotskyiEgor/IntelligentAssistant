@@ -20,7 +20,7 @@ LISTEN_TIMEOUT = 7.5
 WAIT_NO_ARGS = 4.5             
 WAIT_WITH_ARGS = 1.5  
 
-ARG_ACTIONS = {"open", "close", "delete", "open_group"}
+ARG_ACTIONS = {"open", "close", "delete", "open_group", "ask_ai"}
 
 
 def load_actions():
