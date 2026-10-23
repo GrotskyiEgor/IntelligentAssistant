@@ -3,7 +3,7 @@ from rapidfuzz import fuzz
 from ..config import ASSISTANT_NAMES, NAME_THRESHOLD
  
  
-def find_name(text: str) -> str | None:
+def find_name(text):
     words = text.split()
     if not words:
         return None

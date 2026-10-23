@@ -5,11 +5,11 @@ from ..nlp.text import normalize_text
 NOISE_WORDS = {"сайт", "сторінку", "сторінка", "веб"}
 
 
-def _words(text: str) -> set[str]:
+def _words(text) -> set[str]:
     return {w for w in normalize_text(text).split() if w not in NOISE_WORDS}
 
 
-def find_site(query: str):
+def find_site(query):
     query_words = _words(query)
     if not query_words:
         return None

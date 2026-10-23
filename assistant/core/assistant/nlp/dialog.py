@@ -4,7 +4,7 @@ from .text import normalize_text
 MAX_ATTEMPTS = 5
 
 
-def ask_text(ctx, question: str, retry: str, attempts: int = MAX_ATTEMPTS) -> str | None:
+def ask_text(ctx, question, retry, attempts = MAX_ATTEMPTS):
     ctx.speak(question)
 
     for _ in range(attempts):
@@ -29,7 +29,7 @@ def ask_text(ctx, question: str, retry: str, attempts: int = MAX_ATTEMPTS) -> st
     return None
 
 
-def confirm(ctx, question: str, attempts: int = MAX_ATTEMPTS) -> bool:
+def confirm(ctx, question, attempts = MAX_ATTEMPTS) -> bool:
     ctx.speak(question)
 
     for _ in range(attempts):

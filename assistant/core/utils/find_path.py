@@ -3,7 +3,7 @@ import subprocess
 import platform
 
 
-def find_path(filename: str):
+def find_path(filename):
     system = platform.system()
 
     filename = os.path.splitext(filename)[0].lower().strip()
@@ -18,7 +18,7 @@ def find_path(filename: str):
         return find_linux_app(filename)
 
 
-def find_windows_app(filename: str):
+def find_windows_app(filename):
     try:
         result = subprocess.run(
             ["where", filename + ".exe"],
@@ -139,7 +139,7 @@ def get_shortcut_target(shortcut_path):
     return None
 
 
-def find_mac_app(filename: str):
+def find_mac_app(filename):
 
     search_dirs = [
         "/Applications",
@@ -161,7 +161,7 @@ def find_mac_app(filename: str):
     return None
 
 
-def find_linux_app(filename: str):
+def find_linux_app(filename):
     try:
 
         result = subprocess.run(

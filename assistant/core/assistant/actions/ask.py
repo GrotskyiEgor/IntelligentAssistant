@@ -11,7 +11,7 @@ PROMPT = (
 MAX_CHARS = 700
  
  
-def clean_for_speech(text: str) -> str:
+def clean_for_speech(text) :
     text = re.sub(r"```.*?```", " ", text, flags=re.DOTALL)
     text = re.sub(r"[*_`#>]+", "", text)
     text = " ".join(text.split())  # один рядок, щоб GUI не губив продовження

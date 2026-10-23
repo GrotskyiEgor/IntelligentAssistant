@@ -1,5 +1,4 @@
 import importlib
-import json
 import pkgutil
 import queue
 import threading
@@ -10,16 +9,19 @@ from django.core.management.base import BaseCommand
 
 from core.assistant import actions as actions_pkg
 from core.assistant.actions.base import ACTIONS, ActionContext
-from core.assistant.config import COMMANDS_JSON_PATH
 from core.assistant.nlp.matcher import CommandMatcher
 from core.assistant.nlp.text import normalize_text
 from core.assistant.listeners.factory import create_listener
-from core.assistant.stdin_reader import StdinReader         
+from core.assistant.stdin_reader import StdinReader
+from core.assistant.nlp.phrases import store
+from core.assistant.services.app_scanner import scan_if_first_run
 
 LISTEN_TIMEOUT = 7.5
-ARG_ACTIONS = {"open", "close", "delete", "open_group"}
 WAIT_NO_ARGS = 4.5             
-WAIT_WITH_ARGS = 1.5   
+WAIT_WITH_ARGS = 1.5  
+
+ARG_ACTIONS = {"open", "close", "delete", "open_group"}
+
 
 def load_actions():
     for module in pkgutil.iter_modules(actions_pkg.__path__):
@@ -29,25 +31,22 @@ def load_actions():
 
     # print(f"Зареєстровані дії: {sorted(ACTIONS)}", flush=True)
 
-def load_commands_map():
-    with open(COMMANDS_JSON_PATH, "r", encoding="utf-8") as file:
-        return json.load(file)
-
 
 class Command(BaseCommand):
     help = "Запускає голосового помічника"
 
     def handle(self, *args, **options):
         load_actions()
-        commands_map = load_commands_map()
-        commands_map.pop("answers", None)
 
-        # unknown = set(commands_map) - set(ACTIONS)
+        store.refresh(force=True)
+        if not store.commands:
+            print("Фрази порожні. Виконайте: python manage.py import_commands", flush=True)
 
-        # if unknown:
-        #     print(f"Увага: у commands.json є дії без реалізації: {sorted(unknown)}", flush=True)
+        unknown = set(store.commands) - set(ACTIONS)
+        if unknown:
+            print(f"Увага: у БД є дії без реалізації: {sorted(unknown)}", flush=True)
 
-        matcher = CommandMatcher(commands_map)
+        matcher = CommandMatcher(store)
         running = threading.Event()
         running.set()
         inputs: queue.Queue[tuple[str, bool]] = queue.Queue()
@@ -78,6 +77,7 @@ class Command(BaseCommand):
 
         ctx = ActionContext(listen=listen, speak=speak, stop=stop)
 
+        scan_if_first_run(print)
         # print("Завантажую розпізнавання мови...", flush=True)
         listener = create_listener(is_running)
 

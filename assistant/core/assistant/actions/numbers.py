@@ -23,11 +23,11 @@ ORDINAL_STEMS = {
 ORDINAL_MAX_SUFFIX = 4
  
  
-def _clean(text: str) -> str:
+def _clean(text) :
     return normalize_text(text.replace("’", "'").replace("ʼ", "'"))
  
  
-def _word_value(word: str) -> int | None:
+def _word_value(word) -> int | None:
     if word in UNITS:
         return UNITS[word]
     if word in TENS:
@@ -38,7 +38,7 @@ def _word_value(word: str) -> int | None:
     return None
  
  
-def parse_number(text: str) -> int | None:
+def parse_number(text) -> int | None:
     text = _clean(text)
  
     digits = re.search(r"\d+", text)

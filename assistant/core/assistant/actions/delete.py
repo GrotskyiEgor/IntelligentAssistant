@@ -1,12 +1,12 @@
 from rapidfuzz import fuzz
- 
+
 from core.models import AppCommand, AppGroup, WebSite
- 
+
 from .base import Action, register
-from ..nlp.answers import is_cancel, is_no, is_yes
+from ..nlp.answers import is_cancel
+from ..nlp.dialog import MAX_ATTEMPTS, confirm
 from ..nlp.text import normalize_text
- 
-MAX_ATTEMPTS = 5
+
 MATCH_THRESHOLD = 70
 AMBIGUITY_GAP = 5
  
@@ -40,11 +40,11 @@ CATEGORIES = {
 }
  
  
-def _clean(text: str) -> str:
+def _clean(text) -> str:
     return normalize_text(text.replace("’", "'").replace("ʼ", "'"))
  
  
-def detect_category(text: str) -> str | None:
+def detect_category(text) -> str | None:
     for word in _clean(text).split():
         for key, cfg in CATEGORIES.items():
             if word.startswith(cfg["stems"]):
@@ -53,7 +53,7 @@ def detect_category(text: str) -> str | None:
     return None
  
  
-def extract_query(text: str) -> str:
+def extract_query(text) -> str:
     stems = tuple(stem for cfg in CATEGORIES.values() for stem in cfg["stems"])
     words = []
     for word in _clean(text).split():
@@ -67,86 +67,102 @@ def extract_query(text: str) -> str:
 @register
 class DeleteItem(Action):
     name = "delete"
- 
+
     def execute(self, ctx, text, matched):
         rest = text.replace(matched, "", 1)
         category = detect_category(rest)
- 
+
         if not category:
             ctx.speak("Що видалити: групу, команду чи сайт?")
             answer = ctx.listen()
 
             if not answer:
                 return ctx.speak("Я не почула відповідь")
-            
             if is_cancel(answer):
                 return ctx.speak("Гаразд, скасовано")
-            category = detect_category(answer)
 
+            category = detect_category(answer)
             if not category:
                 return ctx.speak("Я не зрозуміла, що саме видаляти")
-            
             rest = answer
- 
+
         cfg = CATEGORIES[category]
         items = list(cfg["model"].objects.order_by("id"))
         if not items:
-
             return ctx.speak(f"Немає жодного запису, щоб видалити {cfg['title']}")
- 
-        item = None
-        query = extract_query(rest)
 
-        if query:
-            item, _ = self._find(items, query, cfg)
-
-            if item is None:
-                ctx.speak(f"Не знайшла {query}")
- 
+        item = self._choose(ctx, items, cfg, first_query=extract_query(rest))
         if item is None:
-            item = self._choose(ctx, items, cfg)
-
-            if item is None:
-                return
- 
-        label = cfg["label"](item)
-
-        if not self._confirm(ctx, label):
             return
- 
+
+        label = cfg["label"](item)
+        if not confirm(ctx, f"Видалити {label}? Скажіть так або ні."):
+            return
+
         item.delete()
         ctx.speak(f"Видалила {label}")
- 
+
+    def _choose(self, ctx, items, cfg, first_query: str = ""):
+        query = first_query
+
+        for _ in range(MAX_ATTEMPTS):
+            if not query:
+                ctx.speak(f"Назвіть ключове слово, що видалити, або скажіть скасувати.")
+                answer = ctx.listen()
+
+                if not answer:
+                    ctx.speak("Я не почула.")
+                    continue
+                if is_cancel(answer):
+                    ctx.speak("Гаразд, скасовано")
+                    return None
+
+                query = extract_query(answer)
+                if not query:
+                    ctx.speak("Я не зрозуміла.")
+                    continue
+
+            item, close = self._find(items, query, cfg)
+            if item is not None:
+                return item
+
+            if close:
+                names = ", ".join(cfg["label"](i) for i in close[:3])
+                ctx.speak(f"Знайшла кілька схожих: {names}. Уточніть, будь ласка, або скажіть скасувати.")
+            else:
+                ctx.speak(f"Не знайшла {query}. Назвіть ще раз або скажіть скасувати.")
+            query = ""
+
+        ctx.speak("Не вдалося знайти, скасовую")
+        return None
+
     @staticmethod
-    def _find(items, query: str, cfg):
-        """Повертає (запис, неоднозначно). Запис None, якщо нічого не підійшло."""
+    def _score(q: str, keys) -> int:
+        best = 0
+        for key in keys:
+            ratio = fuzz.ratio(q, key)
+            if ratio == 100:
+                return 120
+            best = max(best, ratio, fuzz.token_set_ratio(q, key))
+        return best
+
+    @classmethod
+    def _find(cls, items, query: str, cfg):
         q = _clean(query)
         scored = []
 
         for item in items:
             keys = [_clean(k) for k in cfg["keys"](item) if k]
-            score = max(
-                (max(fuzz.ratio(q, k), fuzz.token_set_ratio(q, k)) for k in keys),
-                default=0,
-            )
-            scored.append((score, item))
- 
+            scored.append((cls._score(q, keys), item))
+
         scored.sort(key=lambda pair: pair[0], reverse=True)
         best_score, best = scored[0]
- 
-        if best_score < MATCH_THRESHOLD:
-            return None, False
-        
-        if best_score < 100 and len(scored) > 1 and best_score - scored[1][0] < AMBIGUITY_GAP:
-            return None, True
-        
-        return best, False
- 
-    def _choose(self, ctx, items, cfg):
-        for index, item in enumerate(items, start=1):
-            print(f"ANSWER: {index}. {cfg['label'](item)}", flush=True)
 
-        ctx.speak("Ось список. Назвіть, що видалити, або скажіть скасувати.")
- 
-        for _ in range(MAX_ATTEMPTS):
-            answer = ctx.listen()
+        if best_score < MATCH_THRESHOLD:
+            return None, []
+
+        close = [i for s, i in scored if best_score - s < AMBIGUITY_GAP]
+        if len(close) > 1:
+            return None, close
+
+        return best, []

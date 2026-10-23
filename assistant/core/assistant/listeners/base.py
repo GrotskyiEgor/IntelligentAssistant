@@ -2,5 +2,5 @@ from abc import ABC, abstractmethod
 
 class Listener(ABC):
     @abstractmethod
-    def listen(self) -> str | None:
+    def listen(self):
         """Блокирующе слушает микрофон и возвращает распознанный текст."""

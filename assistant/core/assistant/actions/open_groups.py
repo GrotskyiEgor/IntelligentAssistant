@@ -10,10 +10,10 @@ from ..nlp.text import normalize_text
 GROUP_STEMS = ("груп", "гру")
 
 
-def _words(text: str) -> list[str]:
+def _words(text) -> list[str]:
     return [w for w in normalize_text(text).split() if not w.startswith(GROUP_STEMS)]
 
-def find_group(query: str):
+def find_group(query):
     words = _words(query)
     if not words:
         return None

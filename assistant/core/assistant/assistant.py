@@ -30,7 +30,7 @@ class Assistant:
     def stop(self):
         self.running = False
 
-    def handle_text(self, text: str):
+    def handle_text(self, text):
         text = normalize_text(text)
         action_name, matched = self.matcher.match(text)
 

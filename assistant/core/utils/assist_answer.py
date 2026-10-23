@@ -6,7 +6,7 @@ from google import genai
 AnswerModel = Callable[[str], str]
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 
-def ans(text: str, model: AnswerModel | None = None) -> str:
+def ans(text, model: AnswerModel | None = None) :
     question = text.strip()
     
     if not question:

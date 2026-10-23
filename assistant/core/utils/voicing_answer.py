@@ -13,11 +13,11 @@ VOICE = "uk-UA-PolinaNeural"
 pygame.mixer.init()
 
 
-async def create_voice(text: str, file_name: str):
+async def create_voice(text, file_name):
     await edge_tts.Communicate(text=text, voice=VOICE).save(audio_fname=file_name)
 
 
-def voicing_text(text: str):
+def voicing_text(text):
     file_name = os.path.join(tempfile.gettempdir(), f"voice_temp_{time.time()}.mp3")
 
     loop = asyncio.new_event_loop()
@@ -42,7 +42,7 @@ def voicing_text(text: str):
         os.remove(file_name)
 
 
-def run_voice(text: str) -> threading.Thread:
+def run_voice(text) -> threading.Thread:
     thread = threading.Thread(target=voicing_text, args=(text,), daemon=True)
     thread.start()
     return thread

@@ -1,2 +1,2 @@
-def normalize_text(text: str) -> str:
+def normalize_text(text) :
     return " ".join(text.lower().strip().split())

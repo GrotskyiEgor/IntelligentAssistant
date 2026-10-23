@@ -4,7 +4,7 @@ from ..nlp.text import normalize_text
 from ..config import APP_THRESHOLD
 
 
-def find_app(text: str):
+def find_app(text):
     text = normalize_text(text)
     best, best_score = None, 0
 

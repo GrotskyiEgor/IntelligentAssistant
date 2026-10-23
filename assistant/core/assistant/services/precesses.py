@@ -3,7 +3,7 @@ import platform
 import subprocess
 
 
-def open_app(path: str):
+def open_app(path):
     system = platform.system()
     if system == "Windows":
         os.startfile(path)
@@ -13,7 +13,7 @@ def open_app(path: str):
         subprocess.Popen([path])
 
 
-def close_app(app_name: str) -> bool:
+def close_app(app_name) -> bool:
     if platform.system() == "Windows":
         result = subprocess.run(
             ["taskkill", "/F", "/IM", app_name, "/T"],
