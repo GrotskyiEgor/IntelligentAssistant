@@ -25,7 +25,7 @@ def _press_key(vk_code, times=1):
 
 
 def _confirm(ctx, question):
-    answer = ask_text(ctx, question, "Я не почула відповідь. Скажіть так або ні")
+    answer = ask_text(ctx, question, "Не почула. Скажіть так або ні")
     if not answer:
         return False
     return bool(set(normalize_text(answer).split()) & YES_WORDS)
@@ -54,7 +54,7 @@ class Shutdown(Action):
     name = "shutdown"
 
     def execute(self, ctx, text, matched):
-        if not _confirm(ctx, "Ви впевнені, що хочете вимкнути комп'ютер?"):
+        if not _confirm(ctx, "Вимкнути комп'ютер?"):
             return ctx.speak("Скасовую")
 
         ctx.speak("Вимикаю комп'ютер")
@@ -66,7 +66,7 @@ class Restart(Action):
     name = "restart"
 
     def execute(self, ctx, text, matched):
-        if not _confirm(ctx, "Ви впевнені, що хочете перезавантажити комп'ютер?"):
+        if not _confirm(ctx, "Перезавантажити комп'ютер?"):
             return ctx.speak("Скасовую")
 
         ctx.speak("Перезавантажую комп'ютер")

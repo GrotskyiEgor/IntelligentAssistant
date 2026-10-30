@@ -20,7 +20,7 @@ class OpenApp(Action):
     def execute(self, ctx, text, matched):
         target = _target_text(text, matched)
         if not target:
-            ctx.speak("Не вказано, що відкрити")
+            ctx.speak("Що відкрити?")
             return
 
         app = find_app(target)
@@ -31,10 +31,10 @@ class OpenApp(Action):
         if site:
             return self.open_site(ctx, site, text)
 
-        ctx.speak(f"Я не знайшла ні програму, ні сайт {target}")
+        ctx.speak(f"Не знайшла {target}")
 
     def open_site(self, ctx, site, text):
-        ctx.speak(f"Відкриваю сайт {site.name}")
+        ctx.speak(f"Відкриваю {site.name}")
         try:
             webbrowser.open(site.url)
             log_site(site, "open", text)
@@ -49,7 +49,7 @@ class OpenApp(Action):
             ctx.speak(f"Шукаю {app.name}")
             app.path = find_path(filename=app.name)
             if not app.path:
-                ctx.speak(f"Я не знайшла шлях до {app.name}")
+                ctx.speak(f"Не знайшла {app.name}")
                 return
             app.save()
 
@@ -67,16 +67,16 @@ class CloseApp(Action):
     def execute(self, ctx, text, matched):
         target = _target_text(text, matched)
         if not target:
-            ctx.speak("Не вказано назву програми")
+            ctx.speak("Що закрити?")
             return
 
         app = find_app(target)
         if not app:
-            ctx.speak(f"Я не знайшла програму {target}")
+            ctx.speak(f"Не знайшла {target}")
             return
 
         if not app.path:
-            ctx.speak(f"Я не знаю шлях до {app.name}")
+            ctx.speak(f"Не знаю, де {app.name}")
             return
 
         ctx.speak(f"Закриваю {app.name}")
@@ -85,4 +85,4 @@ class CloseApp(Action):
         if closed:
             log_app(app, "close", text)
         else:
-            ctx.speak(f"Не вдалося закрити {app.name}, можливо, вона не запущена")
+            ctx.speak(f"{app.name} не запущена")

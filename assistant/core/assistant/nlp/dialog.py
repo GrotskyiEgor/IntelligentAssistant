@@ -15,7 +15,7 @@ def ask_text(ctx, question, retry, attempts = MAX_ATTEMPTS):
             continue
 
         if is_cancel(answer):
-            ctx.speak("Гаразд, скасовано")
+            ctx.speak("Скасовано")
             return None
 
         text = normalize_text(answer)
@@ -24,7 +24,7 @@ def ask_text(ctx, question, retry, attempts = MAX_ATTEMPTS):
 
         ctx.speak(retry)
 
-    ctx.speak("Відповіді немає, скасовую")
+    ctx.speak("Скасовую")
     
     return None
 
@@ -36,18 +36,18 @@ def confirm(ctx, question, attempts = MAX_ATTEMPTS) -> bool:
         answer = ctx.listen()
 
         if not answer:
-            ctx.speak("Я не почула. Скажіть так або ні")
+            ctx.speak("Так чи ні?")
             continue
 
         if is_cancel(answer) or is_no(answer):
-            ctx.speak("Гаразд, скасовано")
+            ctx.speak("Скасовано")
             return False
 
         if is_yes(answer):
             return True
 
-        ctx.speak("Я не зрозуміла. Скажіть так або ні")
+        ctx.speak("Не зрозуміла. Так чи ні?")
 
-    ctx.speak("Відповіді немає, скасовую")
+    ctx.speak("Скасовую")
 
     return False

@@ -77,49 +77,49 @@ class DeleteItem(Action):
             answer = ctx.listen()
 
             if not answer:
-                return ctx.speak("Я не почула відповідь")
+                return ctx.speak("Не почула")
             if is_cancel(answer):
-                return ctx.speak("Гаразд, скасовано")
+                return ctx.speak("Скасовано")
 
             category = detect_category(answer)
             if not category:
-                return ctx.speak("Я не зрозуміла, що саме видаляти")
+                return ctx.speak("Не зрозуміла")
             rest = answer
 
         cfg = CATEGORIES[category]
         items = list(cfg["model"].objects.order_by("id"))
         if not items:
-            return ctx.speak(f"Немає жодного запису, щоб видалити {cfg['title']}")
+            return ctx.speak(f"Список порожній")
 
         item = self._choose(ctx, items, cfg, first_query=extract_query(rest))
         if item is None:
             return
 
         label = cfg["label"](item)
-        if not confirm(ctx, f"Видалити {label}? Скажіть так або ні."):
+        if not confirm(ctx, f"Видалити {label}?"):
             return
 
         item.delete()
-        ctx.speak(f"Видалила {label}")
+        ctx.speak(f"Видалила")
 
     def _choose(self, ctx, items, cfg, first_query: str = ""):
         query = first_query
 
         for _ in range(MAX_ATTEMPTS):
             if not query:
-                ctx.speak(f"Назвіть ключове слово, що видалити, або скажіть скасувати.")
+                ctx.speak(f"Що саме видалити?")
                 answer = ctx.listen()
 
                 if not answer:
-                    ctx.speak("Я не почула.")
+                    ctx.speak("Не почула.")
                     continue
                 if is_cancel(answer):
-                    ctx.speak("Гаразд, скасовано")
+                    ctx.speak("Скасовано")
                     return None
 
                 query = extract_query(answer)
                 if not query:
-                    ctx.speak("Я не зрозуміла.")
+                    ctx.speak("Не зрозуміла.")
                     continue
 
             item, close = self._find(items, query, cfg)
@@ -128,12 +128,12 @@ class DeleteItem(Action):
 
             if close:
                 names = ", ".join(cfg["label"](i) for i in close[:3])
-                ctx.speak(f"Знайшла кілька схожих: {names}. Уточніть, будь ласка, або скажіть скасувати.")
+                ctx.speak(f"Схожих кілька: {names}. Уточніть")
             else:
-                ctx.speak(f"Не знайшла {query}. Назвіть ще раз або скажіть скасувати.")
+                ctx.speak(f"Не знайшла {query}. Ще раз?")
             query = ""
 
-        ctx.speak("Не вдалося знайти, скасовую")
+        ctx.speak("Cкасовую")
         return None
 
     @staticmethod

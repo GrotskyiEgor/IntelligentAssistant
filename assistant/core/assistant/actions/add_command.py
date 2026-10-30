@@ -17,33 +17,33 @@ class AddCommand(Action):
 
         keyword = ask_text(
             ctx,
-            f"Знайшла {name}. Яке ключове слово використовувати для запуску?",
-            "Я не почула ключове слово. Повторіть, будь ласка",
+            f"Знайшла {name}. Яке ключове слово?",
+            "Не почула. Повторіть",
         )
         if not keyword:
             return
 
-        if not confirm(ctx, f"Додати команду: програма {name}, ключове слово {keyword}? Скажіть так або ні."):
+        if not confirm(ctx, f"Додати {name}?"):
             return
 
         AppCommand.objects.create(name=name, keyword=keyword, path=path)
-        ctx.speak(f"Команду для {name} успішно додано")
+        ctx.speak(f"Команду додано")
 
     @staticmethod
     def _ask_program(ctx):
         question = "Як називається програма?"
 
         for _ in range(MAX_ATTEMPTS):
-            name = ask_text(ctx, question, "Я не почула назву програми. Повторіть, будь ласка")
+            name = ask_text(ctx, question, "Не почула. Повторіть")
             if not name:
                 return None
 
-            ctx.speak(f"Шукаю програму {name}")
+            ctx.speak(f"Шукаю {name}")
             path = find_path(filename=name)
             if path:
                 return name, path
 
-            question = f"Я не знайшла програму {name}. Назвіть ще раз або скажіть скасувати"
+            question = f"Не знайшла {name}. Ще раз?"
 
-        ctx.speak("Не вдалося знайти програму, скасовую")
+        ctx.speak("Скасовую")
         return None

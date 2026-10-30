@@ -29,16 +29,16 @@ class Ask(Action):
         question = text.replace(matched, "", 1).strip(" ,.!?-—")
  
         if not question:
-            ctx.speak("Слухаю, яке у вас запитання?")
+            ctx.speak("Слухаю")
             question = ctx.listen()
             if not question:
-                return ctx.speak("Я не почула запитання")
+                return ctx.speak("Не почула запитання")
  
         ctx.show("Думаю...")
         try:
             answer = ans(PROMPT.format(question=question))
         except Exception as error:
             print(f"ASK ERROR: {error}", flush=True)
-            return ctx.speak("Не вдалося отримати відповідь, перевірте ключ і інтернет")
+            return ctx.speak("Немає зв'язку з ШІ")
  
         ctx.speak(clean_for_speech(answer))

@@ -19,17 +19,15 @@ from core.assistant.services.app_scanner import scan_if_first_run
 LISTEN_TIMEOUT = 7.5
 WAIT_NO_ARGS = 4.5             
 WAIT_WITH_ARGS = 1.5  
+GRACE = 1.0
 
-ARG_ACTIONS = {"open", "close", "delete", "open_group", "ask_ai"}
+ARG_ACTIONS = {"open", "close", "delete", "open_group", "ask_ai", "ask"}
 
 
 def load_actions():
     for module in pkgutil.iter_modules(actions_pkg.__path__):
         if module.name != "base":
             importlib.import_module(f"{actions_pkg.__name__}.{module.name}")
-            # print(f"Підключено дію-модуль: {module.name}", flush=True)
-
-    # print(f"Зареєстровані дії: {sorted(ACTIONS)}", flush=True)
 
 
 class Command(BaseCommand):
@@ -68,6 +66,11 @@ class Command(BaseCommand):
             finally:
                 state["end"] = time.monotonic()
                 speaking.clear()
+                while True:
+                    try:
+                        inputs.get_nowait()
+                    except queue.Empty:
+                        break
 
         def listen():
             try:
@@ -88,9 +91,13 @@ class Command(BaseCommand):
                 except Exception as error:
                     print(f"LISTENER ERROR: {error}", flush=True)
                     continue
-                if text and text.strip():
-                    print(f"Голос: {text}", flush=True)
-                    inputs.put((text, True))
+                if not (text and text.strip()):
+                    continue
+                if speaking.is_set() or time.monotonic() - state["end"] < GRACE:
+                    print(f"Ігнорую (бот говорив): {text}", flush=True)
+                    continue
+                print(f"Голос: {text}", flush=True)
+                inputs.put((text, True))
 
         threading.Thread(target=mic_loop, daemon=True).start()
         StdinReader(on_text=lambda t: inputs.put((t, False)), is_running=is_running).start()
@@ -104,7 +111,7 @@ class Command(BaseCommand):
                 continue
 
             if from_voice:
-                action_name, matched, text = self.collect(raw, matcher, inputs, is_running)
+                action_name, matched, text = self.collect(raw, matcher, inputs, is_running, ctx)
             else:
                 text = normalize_text(raw)
                 action_name, matched = matcher.match(text)
@@ -114,7 +121,7 @@ class Command(BaseCommand):
         print("Помічник зупинено.", flush=True)
 
     @staticmethod
-    def collect(raw, matcher, inputs, is_running):
+    def collect(raw, matcher, inputs, is_running, ctx):
         text = normalize_text(raw)
         action, matched = matcher.match(text)
 
@@ -124,8 +131,11 @@ class Command(BaseCommand):
         while is_running():
             args = text.replace(matched, "", 1).strip()
             wait = WAIT_WITH_ARGS if args else WAIT_NO_ARGS
+
             if not args:
-                print("Слухаю продовження...", flush=True)
+                ctx.speak(f"Що зробити")
+                prompted = True
+            
             try:
                 more, _ = inputs.get(timeout=wait)
             except queue.Empty:

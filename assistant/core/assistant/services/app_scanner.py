@@ -146,7 +146,7 @@ def scan_if_first_run(log: Callable[[str], None] = print, deep: bool = False) ->
     if AssistantState.objects.filter(key=SCAN_FLAG).exists():
         return None
  
-    log("ANSWER: Це перший запуск, шукаю встановлені програми. Це може зайняти трохи часу")
+    log("ANSWER: Перший запуск, шукаю програми")
     try:
         found = scan_apps(deep=deep)
     except Exception as error:
@@ -159,5 +159,5 @@ def scan_if_first_run(log: Callable[[str], None] = print, deep: bool = False) ->
  
     added = save_apps(found)
     mark_scanned()
-    log(f"ANSWER: Знайшла і додала програм: {added}")
+    log(f"ANSWER: Додала програм: {added}")
     return added

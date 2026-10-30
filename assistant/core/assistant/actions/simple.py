@@ -6,7 +6,7 @@ class Greeting(Action):
     name = "greeting"
 
     def execute(self, ctx, text, matched):
-        ctx.speak("Привіт, чим можу допомогти?")
+        ctx.speak("Привіт! Слухаю")
 
 
 @register

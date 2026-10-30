@@ -47,19 +47,19 @@ class OpenGroup(Action):
         for _ in range(MAX_ATTEMPTS):
             if group:
                 break
-            answer = ask_text(ctx, question, "Я не почула назву групи. Повторіть, будь ласка")
+            answer = ask_text(ctx, question, "Не почула назву групи. Повторіть, будь ласка")
             if not answer:
                 return
             group = find_group(answer)
-            question = "Я не знайшла таку групу. Назвіть ще раз або скажіть скасувати"
+            question = "Не знайшла групу. Ще раз?"
         else:
-            return ctx.speak("Не вдалося знайти групу, скасовую")
+            return ctx.speak("Cкасовую")
 
-        apps = list(group.apps.all())  # поправь имя связи под свою модель
+        apps = list(group.apps.all())
         if not apps:
-            return ctx.speak(f"У групі {group.name} немає програм")
+            return ctx.speak(f"Група {group.name} порожня")
 
-        ctx.speak(f"Відкриваю групу {group.name}")
+        ctx.speak(f"Відкриваю {group.name}")
         for app in apps:
             try:
                 os.startfile(app.path)
