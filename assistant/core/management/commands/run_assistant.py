@@ -91,11 +91,14 @@ class Command(BaseCommand):
                 except Exception as error:
                     print(f"LISTENER ERROR: {error}", flush=True)
                     continue
+
                 if not (text and text.strip()):
                     continue
+
                 if speaking.is_set() or time.monotonic() - state["end"] < GRACE:
                     print(f"Ігнорую (бот говорив): {text}", flush=True)
                     continue
+                
                 print(f"Голос: {text}", flush=True)
                 inputs.put((text, True))
 
@@ -142,7 +145,7 @@ class Command(BaseCommand):
                 break
             text = normalize_text(f"{text} {more}")
 
-        return action, matched, text
+            return action, matched, text
 
     @staticmethod
     def process(action_name, matched, text, ctx):

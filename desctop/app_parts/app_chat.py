@@ -10,7 +10,6 @@ class ChatMixin:
         self.main_panel_background_frame = QFrame()
         self.main_panel_background_frame.setFrameShape(QFrame.Shape.NoFrame)
         self.main_panel_background_frame.setFixedSize(270, 660)
-
         self.main_panel_background_frame.setStyleSheet("""
             QFrame#mainPanelBackground {
                 background-color: #292929;
@@ -18,25 +17,21 @@ class ChatMixin:
             }
         """)
 
-        self.main_panel_background_frame.setContentsMargins(10, 10, 10, 10)
-
-        self.main_panel_title = QLabel("Повідомлення")
+        self.main_panel_title = QLabel("Календар")
         self.main_panel_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_panel_title.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
-                background: transparent;
-                border: none;
-                font-size: 20px;
-                font-weight: bold;
-            }
+            QLabel { color: #ffffff; background: transparent; border: none;
+                    font-size: 20px; font-weight: bold; }
         """)
 
-        self.messages_layout = QVBoxLayout(self.main_panel_background_frame)
-        self.messages_layout.setContentsMargins(20, 20, 20, 20)
-        self.messages_layout.setSpacing(12)
+        self.main_panel_layout = QVBoxLayout(self.main_panel_background_frame)
+        self.main_panel_layout.setContentsMargins(10, 14, 10, 14)
+        self.main_panel_layout.setSpacing(10)
 
-        self.messages_layout.addWidget(self.main_panel_title)
+        self.calendar = CalendarPanel(self)
+
+        self.main_panel_layout.addWidget(self.main_panel_title)
+        self.main_panel_layout.addWidget(self.calendar, 1)
         self.main_layout.addWidget(self.main_panel_background_frame)
 
     def create_chat(self):

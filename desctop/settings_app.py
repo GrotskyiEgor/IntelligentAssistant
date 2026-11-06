@@ -46,7 +46,7 @@ class SettingsWindow(QWidget):
         self.name = QLineEdit()
         self.name.setPlaceholderText("Наприклад, Помічник")
         self.voice = QComboBox()
-        self.voice.addItems(["Alex", "Victoria"])
+        self.voice.addItems(["Victoria"])
         self.theme = QComboBox()
         self.theme.addItem("Темна", "dark")
         self.theme.addItem("Світла", "light")

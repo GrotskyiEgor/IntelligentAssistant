@@ -13,6 +13,17 @@ def open_app(path):
         subprocess.Popen([path])
 
 
+def open_path(path):
+    path = str(path)
+    system = platform.system()
+    if system == "Windows":
+        os.startfile(path)
+    elif system == "Darwin":
+        subprocess.Popen(["open", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
+
+
 def close_app(app_name) -> bool:
     if platform.system() == "Windows":
         result = subprocess.run(
