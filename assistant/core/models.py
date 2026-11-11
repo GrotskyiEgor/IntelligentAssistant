@@ -38,3 +38,14 @@ class ChatMessage(models.Model):
         return f"Автор - {self.author}; Текст - {self.text[:20]}"
 
 # Коля
+
+class Task(models.Model):
+    day = models.DateField()
+    time = models.TimeField()
+    difficulty = models.IntegerField()
+    priority = models.IntegerField(default=1)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Задача {self.id}"
