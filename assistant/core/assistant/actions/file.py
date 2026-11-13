@@ -6,6 +6,7 @@ from pathlib import Path
 from rapidfuzz import fuzz
 
 from ..nlp.text import normalize_text
+from ..actions.numbers import parse_number
 
 MATCH_THRESHOLD = 75
 AMBIGUITY_GAP = 5
@@ -42,6 +43,7 @@ class Match:
 
 def _clean(text) -> str:
     text = text.replace("’", "'").replace("ʼ", "'")
+    
     for ch in "_-.,!?":
         text = text.replace(ch, " ")
     return normalize_text(text)
@@ -163,7 +165,6 @@ def search_and_pick(query, want_dirs):
 
 
 def narrow(candidates, answer):
-    from ..actions.numbers import parse_number
 
     number = parse_number(answer)
     if number is not None and 1 <= number <= len(candidates):
