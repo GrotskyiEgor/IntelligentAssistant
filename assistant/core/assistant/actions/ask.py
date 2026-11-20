@@ -34,7 +34,8 @@ class Ask(Action):
             if not question:
                 return ctx.speak("Не почула запитання")
  
-        ctx.show("Думаю...")
+        ctx.speak("Думаю...")
+
         try:
             answer = ans(PROMPT.format(question=question))
         except Exception as error:

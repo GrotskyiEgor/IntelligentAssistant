@@ -41,8 +41,10 @@ class Command(BaseCommand):
             print("Фрази порожні. Виконайте: python manage.py import_commands", flush=True)
 
         unknown = set(store.commands) - set(ACTIONS)
+
         if unknown:
-            print(f"Увага: у БД є дії без реалізації: {sorted(unknown)}", flush=True)
+            # print(f"Увага: у БД є дії без реалізації: {sorted(unknown)}", flush=True)
+            ...
 
         matcher = CommandMatcher(store)
         running = threading.Event()
@@ -96,7 +98,7 @@ class Command(BaseCommand):
                     continue
 
                 if speaking.is_set() or time.monotonic() - state["end"] < GRACE:
-                    print(f"Ігнорую (бот говорив): {text}", flush=True)
+                    # print(f"Ігнорую (бот говорив): {text}", flush=True)
                     continue
                 
                 print(f"Голос: {text}", flush=True)
@@ -136,16 +138,17 @@ class Command(BaseCommand):
             wait = WAIT_WITH_ARGS if args else WAIT_NO_ARGS
 
             if not args:
-                ctx.speak(f"Що зробити")
+                ctx.speak("Що зробити")
                 prompted = True
-            
+
             try:
                 more, _ = inputs.get(timeout=wait)
             except queue.Empty:
                 break
+
             text = normalize_text(f"{text} {more}")
 
-            return action, matched, text
+        return action, matched, text
 
     @staticmethod
     def process(action_name, matched, text, ctx):

@@ -27,8 +27,8 @@ SKIP_DIRS = {
     "appdata", "application data", "$recycle.bin", "system volume information",
     "node_modules", "__pycache__", "venv", "env", "site-packages", "windows",
 }
-SKIP_FILE_EXT = {".ini", ".tmp", ".pyc", ".dll", ".sys", ".dat", ".log"}
 
+SKIP_FILE_EXT = {".ini", ".tmp", ".pyc", ".dll", ".sys", ".dat", ".log"}
 
 @dataclass
 class Match:

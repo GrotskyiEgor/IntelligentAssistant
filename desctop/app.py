@@ -4,8 +4,9 @@ import sys
 import json
 
 from hPyT import title_bar_color
-from PyQt6.QtCore import Qt, QTimer, QProcess, QProcessEnvironment
-from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenuBar, QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
+from PyQt6.QtCore import Qt, QTimer, QProcess, QProcessEnvironment, QDate
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import QComboBox, QDateEdit, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenuBar, QPushButton, QScrollArea, QSizePolicy, QTextEdit, QVBoxLayout, QWidget
 from PyQt6.QtCore import Qt, QTimer, QProcess, QProcessEnvironment
 
 from app_parts.app_chat import ChatMixin
@@ -532,6 +533,169 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
 
         input_layout.addWidget(self.message_input)
         input_layout.addWidget(self.send_btn)
+
+    def open_scheduled_task(self, task):
+        self.current_scheduled_task = dict(task)
+        self.messages_frame.hide()
+        if hasattr(self, "task_editor"):
+            self.messages_frame_back_layout.removeWidget(self.task_editor)
+            self.task_editor.deleteLater()
+        self.task_editor = QWidget()
+        self.task_editor.setObjectName("taskEditor")
+        root = QVBoxLayout(self.task_editor)
+        root.setContentsMargins(24, 18, 24, 18)
+        root.setSpacing(12)
+
+        header = QFrame()
+        header.setObjectName("taskHeader")
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(12)
+        back = QPushButton("←")
+        back.setFixedSize(42, 42)
+        back.clicked.connect(self.close_scheduled_task)
+        title = QLabel(str(task.get("title", "Задача")))
+        title.setWordWrap(True)
+        title.setStyleSheet("font-size: 22px; font-weight: bold; background: transparent; border: none;")
+        header_layout.addWidget(back)
+        header_layout.addWidget(title, 1)
+        root.addWidget(header)
+
+        created = task.get("created_at", task.get("created", ""))
+        edited = task.get("edited_at", task.get("updated_at", task.get("edited", "")))
+        stamp = edited or created
+        stamp_text = str(stamp)
+        for date_format in ("yyyy-MM-dd", "dd.MM.yy", "dd.MM.yyyy"):
+            parsed_stamp = QDate.fromString(stamp_text[:10], date_format)
+            if parsed_stamp.isValid():
+                stamp_text = parsed_stamp.toString("dd.MM.yy")
+                break
+        status = QLabel(f"{'Редаговано' if edited else 'Створено'} {stamp_text}" if stamp_text else "Заплановане завдання")
+        status.setStyleSheet("color: #a1a1aa; background: transparent; border: none; font-size: 13px;")
+        root.addWidget(status)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        content = QWidget()
+        form = QVBoxLayout(content)
+        form.setContentsMargins(2, 4, 2, 4)
+        form.setSpacing(8)
+
+        form.addWidget(QLabel("Опис"))
+        self.task_description = QTextEdit()
+        self.task_description.setPlaceholderText("Додайте опис завдання")
+        self.task_description.setPlainText(str(task.get("description", "")))
+        self.task_description.setFixedHeight(100)
+        form.addWidget(self.task_description)
+
+        form.addWidget(QLabel("Кінцевий термін"))
+        self.task_deadline = QDateEdit()
+        self.task_deadline.setCalendarPopup(True)
+        self.task_deadline.setDisplayFormat("dd.MM.yyyy")
+        deadline = str(task.get("deadline", ""))
+        parsed = QDate.fromString(deadline[:10], "yyyy-MM-dd")
+        if not parsed.isValid():
+            parsed = QDate.fromString(deadline[:10], "dd.MM.yyyy")
+        if not parsed.isValid():
+            parsed = QDate.fromString(deadline[:8], "dd.MM.yy")
+        if parsed.isValid():
+            self.task_deadline.setDate(parsed)
+        else:
+            self.task_deadline.setDate(QDate.currentDate())
+        form.addWidget(self.task_deadline)
+
+        form.addWidget(QLabel("Складність"))
+        self.task_difficulty = QComboBox()
+        self.task_difficulty.addItems(["low", "mid", "high"])
+        difficulty = str(task.get("difficulty", "mid")).lower()
+        self.task_difficulty.setCurrentText(difficulty if difficulty in {"low", "mid", "high"} else "mid")
+        form.addWidget(self.task_difficulty)
+
+        photos_title = QHBoxLayout()
+        photos_title.addWidget(QLabel("Фото"), 1)
+        add_photo = QPushButton("Додати фото")
+        add_photo.clicked.connect(self.add_task_photos)
+        photos_title.addWidget(add_photo)
+        form.addLayout(photos_title)
+        self.task_photos = list(task.get("photos", []))
+        self.task_photos_layout = QVBoxLayout()
+        form.addLayout(self.task_photos_layout)
+        self.refresh_task_photos()
+        form.addStretch()
+        scroll.setWidget(content)
+        root.addWidget(scroll, 1)
+
+        save = QPushButton("Зберегти")
+        save.setFixedHeight(46)
+        save.clicked.connect(self.save_scheduled_task)
+        root.addWidget(save)
+
+        theme = self.theme
+        self.task_editor.setStyleSheet(f"""
+            QWidget#taskEditor {{ background: {theme['panel']}; color: {theme['foreground']}; }}
+            QLabel {{ color: {theme['foreground']}; background: transparent; border: none; }}
+            QLineEdit, QTextEdit, QComboBox, QDateEdit {{ background: {theme['field']}; color: {theme['foreground']}; border: 1px solid {theme['border']}; border-radius: 10px; padding: 8px; }}
+            QPushButton {{ background: {self.accent['primary']}; color: white; border: none; border-radius: 10px; padding: 8px 12px; font-weight: bold; }}
+            QPushButton:hover {{ background: {self.accent['hover']}; }}
+            QScrollArea, QWidget {{ border: none; }}
+        """)
+        self.messages_frame_back_layout.addWidget(self.task_editor)
+        self.task_editor.show()
+
+    def close_scheduled_task(self):
+        if hasattr(self, "task_editor"):
+            self.messages_frame_back_layout.removeWidget(self.task_editor)
+            self.task_editor.deleteLater()
+            del self.task_editor
+        self.messages_frame.show()
+
+    def add_task_photos(self):
+        paths, _ = QFileDialog.getOpenFileNames(self, "Оберіть фото", "", "Зображення (*.png *.jpg *.jpeg *.webp *.bmp)")
+        self.task_photos.extend(paths)
+        self.refresh_task_photos()
+
+    def refresh_task_photos(self):
+        while self.task_photos_layout.count():
+            item = self.task_photos_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        for path in self.task_photos:
+            row = QFrame()
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(4, 2, 4, 2)
+            preview = QLabel()
+            preview.setFixedSize(52, 42)
+            pixmap = QPixmap(path)
+            if not pixmap.isNull():
+                preview.setPixmap(pixmap.scaled(52, 42, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            row_layout.addWidget(preview)
+            name = QLabel(os.path.basename(path))
+            name.setToolTip(path)
+            row_layout.addWidget(name, 1)
+            remove = QPushButton("×")
+            remove.setFixedSize(32, 32)
+            remove.clicked.connect(lambda checked=False, value=path: self.remove_task_photo(value))
+            row_layout.addWidget(remove)
+            self.task_photos_layout.addWidget(row)
+
+    def remove_task_photo(self, path):
+        if path in self.task_photos:
+            self.task_photos.remove(path)
+            self.refresh_task_photos()
+
+    def save_scheduled_task(self):
+        task = dict(self.current_scheduled_task)
+        task.update({
+            "title": task.get("title", "Задача"),
+            "description": self.task_description.toPlainText().strip(),
+            "deadline": self.task_deadline.date().toString("yyyy-MM-dd"),
+            "difficulty": self.task_difficulty.currentText(),
+            "photos": list(self.task_photos),
+        })
+        # CreateTask
+        print(task)
 
     def send_message(self):
         text = self.message_input.text().strip()
