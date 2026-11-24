@@ -4,9 +4,9 @@ import sys
 import json
 
 from hPyT import title_bar_color
-from PyQt6.QtCore import Qt, QTimer, QProcess, QProcessEnvironment, QDate
-from PyQt6.QtGui import QPixmap
-from PyQt6.QtWidgets import QComboBox, QDateEdit, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenuBar, QPushButton, QScrollArea, QSizePolicy, QTextEdit, QVBoxLayout, QWidget
+from PyQt6.QtCore import Qt, QTimer, QProcess, QProcessEnvironment, QDate, QSize
+from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtWidgets import QComboBox, QDateEdit, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenuBar, QPushButton, QScrollArea, QSizePolicy, QStackedWidget, QTextEdit, QVBoxLayout, QWidget
 from PyQt6.QtCore import Qt, QTimer, QProcess, QProcessEnvironment
 
 from app_parts.app_chat import ChatMixin
@@ -24,6 +24,7 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
 
         self.assistant_process = None
         self.settings = None
+        self.scheduled_tasks = []
 
         try:
             with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "settings.json"), "r", encoding="utf-8") as file:
@@ -298,6 +299,9 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
         """)
 
         self.main_panel_title.setStyleSheet(f"QLabel {{ color: {self.theme['foreground']}; background: transparent; border: none; font-size: 20px; font-weight: bold; }}")
+        self.tasks_sidebar_button.setStyleSheet(f"QPushButton {{ background: {self.accent['primary']}; color: white; border: none; border-radius: 10px; padding: 9px; font-weight: bold; }} QPushButton:hover {{ background: {self.accent['hover']}; }}")
+        self.tasks_sidebar.setStyleSheet(f"QWidget {{ color: {self.theme['foreground']}; background: transparent; }} QPushButton {{ background: {self.theme['field']}; color: {self.theme['foreground']}; border: 1px solid {self.theme['border']}; border-radius: 9px; padding: 8px; font-size: 15px; }} QPushButton:hover {{ border-color: {self.accent['primary']}; }} QPushButton#newTaskButton {{ background: {self.accent['primary']}; color: white; border: none; font-weight: bold; }} QPushButton#newTaskButton:hover {{ background: {self.accent['hover']}; }}")
+        self.new_command_btn.setStyleSheet("QPushButton { color: white; }")
         self.title.setStyleSheet(f"color: {self.theme['foreground']}; background: transparent; font-size: 20px; font-weight: bold; padding-bottom: 5px;")
         self.input_frame.setStyleSheet(f"QFrame#inputFrame {{ background-color: {self.theme['field']}; border-radius: 20px; border: 1px solid {self.theme['border']}; }}")
         self.message_input.setStyleSheet(f"QLineEdit {{ border: none; background: transparent; color: {self.theme['foreground']}; font-size: 16px; }}")
@@ -345,7 +349,29 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
         self.calendar = CalendarPanel(self)
 
         self.main_panel_layout.addWidget(self.main_panel_title)
-        self.main_panel_layout.addWidget(self.calendar, 1)
+        self.sidebar_pages = QStackedWidget()
+        self.sidebar_pages.addWidget(self.calendar)
+
+        self.tasks_sidebar = QWidget()
+        tasks_layout = QVBoxLayout(self.tasks_sidebar)
+        tasks_layout.setContentsMargins(0, 0, 0, 0)
+        tasks_layout.setSpacing(8)
+        self.new_task_button = QPushButton("Нова задача")
+        self.new_task_button.setObjectName("newTaskButton")
+        self.new_task_button.setIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "add.svg")))
+        self.new_task_button.setIconSize(QSize(20, 20))
+        self.new_task_button.clicked.connect(self.create_scheduled_task)
+        self.tasks_buttons_layout = QVBoxLayout()
+        self.tasks_buttons_layout.setSpacing(6)
+        self.tasks_buttons_layout.addStretch()
+        tasks_layout.addWidget(self.new_task_button)
+        tasks_layout.addLayout(self.tasks_buttons_layout, 1)
+        self.sidebar_pages.addWidget(self.tasks_sidebar)
+        self.main_panel_layout.addWidget(self.sidebar_pages, 1)
+
+        self.tasks_sidebar_button = QPushButton("Заплановані задачі")
+        self.tasks_sidebar_button.clicked.connect(self.toggle_tasks_sidebar)
+        self.main_panel_layout.insertWidget(1, self.tasks_sidebar_button)
         self.main_layout.addWidget(self.main_panel_background_frame)
 
         self.messages_layout = QVBoxLayout(self.main_panel_background_frame)
@@ -354,6 +380,12 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
 
         self.messages_layout.addWidget(self.main_panel_title)
         self.main_layout.addWidget(self.main_panel_background_frame)
+
+    def toggle_tasks_sidebar(self):
+        if self.sidebar_pages.currentWidget() is self.tasks_sidebar:
+            self.sidebar_pages.setCurrentWidget(self.calendar)
+        else:
+            self.sidebar_pages.setCurrentWidget(self.tasks_sidebar)
 
     def create_chat(self):
         self.messages_frame_back = QFrame()
@@ -551,14 +583,17 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(12)
-        back = QPushButton("←")
+        back = QPushButton()
+        back.setObjectName("taskBackButton")
+        back.setIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "back.svg")))
+        back.setIconSize(QSize(22, 22))
         back.setFixedSize(42, 42)
         back.clicked.connect(self.close_scheduled_task)
-        title = QLabel(str(task.get("title", "Задача")))
-        title.setWordWrap(True)
-        title.setStyleSheet("font-size: 22px; font-weight: bold; background: transparent; border: none;")
+        self.task_title = QLineEdit(str(task.get("title", "")))
+        self.task_title.setPlaceholderText("Назва задачі")
+        self.task_title.setStyleSheet("font-size: 22px; font-weight: bold;")
         header_layout.addWidget(back)
-        header_layout.addWidget(title, 1)
+        header_layout.addWidget(self.task_title, 1)
         root.addWidget(header)
 
         created = task.get("created_at", task.get("created", ""))
@@ -571,7 +606,7 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
                 stamp_text = parsed_stamp.toString("dd.MM.yy")
                 break
         status = QLabel(f"{'Редаговано' if edited else 'Створено'} {stamp_text}" if stamp_text else "Заплановане завдання")
-        status.setStyleSheet("color: #a1a1aa; background: transparent; border: none; font-size: 13px;")
+        status.setStyleSheet(f"color: {self.theme['muted']}; background: transparent; border: none; font-size: 15px;")
         root.addWidget(status)
 
         scroll = QScrollArea()
@@ -633,9 +668,19 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
 
         theme = self.theme
         self.task_editor.setStyleSheet(f"""
-            QWidget#taskEditor {{ background: {theme['panel']}; color: {theme['foreground']}; }}
-            QLabel {{ color: {theme['foreground']}; background: transparent; border: none; }}
+            QWidget#taskEditor {{ background: {theme['panel']}; color: {theme['foreground']}; font-size: 15px; }}
+            QLabel {{ color: {theme['foreground']}; background: transparent; border: none; font-size: 15px; }}
             QLineEdit, QTextEdit, QComboBox, QDateEdit {{ background: {theme['field']}; color: {theme['foreground']}; border: 1px solid {theme['border']}; border-radius: 10px; padding: 8px; }}
+            QComboBox::drop-down, QDateEdit::drop-down {{ background: {theme['field']}; border: none; border-left: 1px solid {theme['border']}; border-top-right-radius: 9px; border-bottom-right-radius: 9px; width: 30px; }}
+            QComboBox QAbstractItemView {{ background: {theme['field']}; color: {theme['foreground']}; border: 1px solid {theme['border']}; selection-background-color: {self.accent['primary']}; selection-color: white; outline: none; padding: 4px; }}
+            QCalendarWidget QWidget {{ background: {theme['panel']}; color: {theme['foreground']}; }}
+            QCalendarWidget QToolButton {{ background: {theme['field']}; color: {theme['foreground']}; border: none; border-radius: 8px; padding: 6px; font-size: 15px; }}
+            QCalendarWidget QToolButton:hover {{ background: {self.accent['hover']}; color: white; }}
+            QCalendarWidget QMenu {{ background: {theme['panel']}; color: {theme['foreground']}; }}
+            QCalendarWidget QSpinBox {{ background: {theme['field']}; color: {theme['foreground']}; border: 1px solid {theme['border']}; border-radius: 8px; padding: 4px; }}
+            QCalendarWidget QAbstractItemView:enabled {{ background: {theme['field']}; color: {theme['foreground']}; selection-background-color: {self.accent['primary']}; selection-color: white; outline: none; }}
+            QPushButton#taskBackButton {{ background: {theme['field']}; color: {theme['foreground']}; border: 1px solid {theme['border']}; border-radius: 21px; padding: 0; }}
+            QPushButton#taskBackButton:hover {{ background: {self.accent['primary']}; border-color: {self.accent['primary']}; }}
             QPushButton {{ background: {self.accent['primary']}; color: white; border: none; border-radius: 10px; padding: 8px 12px; font-weight: bold; }}
             QPushButton:hover {{ background: {self.accent['hover']}; }}
             QScrollArea, QWidget {{ border: none; }}
@@ -688,14 +733,49 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
     def save_scheduled_task(self):
         task = dict(self.current_scheduled_task)
         task.update({
-            "title": task.get("title", "Задача"),
+            "title": self.task_title.text().strip() or "Задача",
             "description": self.task_description.toPlainText().strip(),
             "deadline": self.task_deadline.date().toString("yyyy-MM-dd"),
             "difficulty": self.task_difficulty.currentText(),
             "photos": list(self.task_photos),
         })
+        existing_index = next((index for index, item in enumerate(self.scheduled_tasks) if item.get("id") == task.get("id")), None)
+        if existing_index is None:
+            task.setdefault("id", str(len(self.scheduled_tasks) + 1))
+            task.setdefault("created_at", QDate.currentDate().toString("yyyy-MM-dd"))
+            self.scheduled_tasks.append(task)
+        else:
+            task["edited_at"] = QDate.currentDate().toString("yyyy-MM-dd")
+            self.scheduled_tasks[existing_index] = task
+        self.current_scheduled_task = task
+        self.refresh_scheduled_tasks()
         # CreateTask
         print(task)
+
+    def create_scheduled_task(self):
+        task_id = str(max((int(task.get("id", 0)) for task in self.scheduled_tasks if str(task.get("id", "")).isdigit()), default=0) + 1)
+        self.open_scheduled_task({
+            "id": task_id,
+            "title": "",
+            "description": "",
+            "deadline": QDate.currentDate().toString("yyyy-MM-dd"),
+            "difficulty": "mid",
+            "photos": [],
+            "created_at": QDate.currentDate().toString("yyyy-MM-dd"),
+        })
+
+    def refresh_scheduled_tasks(self):
+        while self.tasks_buttons_layout.count() > 1:
+            item = self.tasks_buttons_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        for task in self.scheduled_tasks:
+            button = QPushButton(task.get("title") or "Задача")
+            button.setMinimumHeight(40)
+            button.setToolTip(task.get("description", ""))
+            button.clicked.connect(lambda checked=False, value=task: self.open_scheduled_task(value))
+            self.tasks_buttons_layout.insertWidget(self.tasks_buttons_layout.count() - 1, button)
 
     def send_message(self):
         text = self.message_input.text().strip()
