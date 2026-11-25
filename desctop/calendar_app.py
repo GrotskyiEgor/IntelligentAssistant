@@ -1,7 +1,7 @@
 import calendar as calendar_lib
 import datetime
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTime, pyqtSignal
 from PyQt6.QtWidgets import *
 
 from hPyT import title_bar_color
@@ -16,6 +16,121 @@ MONTHS = (
 WEEKDAYS = ("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд")
 
 
+class CreateTaskDialog(QDialog):
+    task_saved = pyqtSignal(dict)
+
+    def __init__(self, date, parent=None):
+        super().__init__(parent)
+        self.date = date
+        self.setWindowTitle("Create Task")
+        self.setModal(True)
+        self.setMinimumWidth(380)
+
+        theme = getattr(parent, "theme", None)
+        accent = getattr(parent, "accent", None)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
+
+        header = QLabel("Create Task")
+        header.setObjectName("taskHeader")
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(header)
+
+        date_label = QLabel(f"{date.day:02d}.{date.month:02d}.{date.year}")
+        date_label.setObjectName("taskDate")
+        date_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(date_label)
+
+        form = QFormLayout()
+        form.setVerticalSpacing(10)
+
+        self.title_input = QLineEdit()
+        self.title_input.setPlaceholderText("Title")
+
+        self.type_input = QComboBox()
+        self.type_input.addItems(["Навчання", "Робота", "Особисте", "Інше"])
+
+        self.start_input = QTimeEdit(QTime(8, 0))
+        self.start_input.setDisplayFormat("HH:mm")
+
+        self.end_input = QTimeEdit(QTime(9, 0))
+        self.end_input.setDisplayFormat("HH:mm")
+
+        self.description_input = QPlainTextEdit()
+        self.description_input.setPlaceholderText("Desc")
+        self.description_input.setFixedHeight(90)
+
+        form.addRow("Title", self.title_input)
+        form.addRow("Type", self.type_input)
+        form.addRow("Start", self.start_input)
+        form.addRow("End", self.end_input)
+        form.addRow("Desc", self.description_input)
+        layout.addLayout(form)
+
+        buttons = QHBoxLayout()
+        buttons.setSpacing(10)
+
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setObjectName("cancelBtn")
+        cancel_btn.clicked.connect(self.reject)
+
+        save_btn = QPushButton("Create task")
+        save_btn.clicked.connect(self.save)
+
+        buttons.addWidget(cancel_btn)
+        buttons.addWidget(save_btn)
+        layout.addLayout(buttons)
+
+        if theme and accent:
+            self.setStyleSheet(f"""
+                QDialog {{ background: {theme['window']}; color: {theme['foreground']}; font-size: 14px; }}
+                QLabel {{ background: transparent; color: {theme['foreground']}; }}
+                QLabel#taskHeader {{ font-size: 18px; font-weight: bold; }}
+                QLabel#taskDate {{ color: {theme['muted']}; font-size: 12px; }}
+                QLineEdit, QComboBox, QTimeEdit, QPlainTextEdit {{
+                    background: {theme['field']};
+                    color: {theme['foreground']};
+                    border: 1px solid {theme['border']};
+                    border-radius: 8px;
+                    padding: 6px 8px;
+                }}
+                QComboBox QAbstractItemView {{
+                    background: {theme['field']};
+                    color: {theme['foreground']};
+                    selection-background-color: {accent['primary']};
+                }}
+                QPushButton {{
+                    background: {accent['primary']};
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 9px 18px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{ background: {accent['hover']}; }}
+                QPushButton#cancelBtn {{
+                    background: {theme['field']};
+                    color: {theme['foreground']};
+                    border: 1px solid {theme['border']};
+                }}
+                QPushButton#cancelBtn:hover {{ background: {theme['border']}; }}
+            """)
+
+    def save(self):
+        task = {
+            "date": f"{self.date.day:02d}.{self.date.month:02d}.{self.date.year}",
+            "title": self.title_input.text().strip(),
+            "type": self.type_input.currentText(),
+            "start": self.start_input.time().toString("HH:mm"),
+            "end": self.end_input.time().toString("HH:mm"),
+            "description": self.description_input.toPlainText().strip(),
+        }
+        self.task_saved.emit(task)
+        self.accept()
+
+
 class CalendarWindow(QWidget):
     def __init__(self, win):
         super().__init__()
@@ -24,7 +139,7 @@ class CalendarWindow(QWidget):
         today = datetime.date.today()
         self.current_year = today.year
         self.current_month = today.month
-        self.selected_date = today
+        self.selected_date = None
         self.day_buttons = []
 
         self.setWindowTitle("Календар")
@@ -115,6 +230,14 @@ class CalendarWindow(QWidget):
         events_layout.addWidget(self.empty_label)
 
         bottom_layout.addWidget(self.events_frame, 1)
+
+        self.create_btn = QPushButton("Create")
+        self.create_btn.setFixedHeight(42)
+        self.create_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.create_btn.clicked.connect(self.open_create_dialog)
+        self.create_btn.hide()
+        bottom_layout.addWidget(self.create_btn)
+
         layout.addWidget(bottom, 2)
 
         self.build_grid()
@@ -199,6 +322,8 @@ class CalendarWindow(QWidget):
         self.update_full_date()
 
     def move_selection(self):
+        if self.selected_date is None:
+            return
         last_day = calendar_lib.monthrange(self.current_year, self.current_month)[1]
         day = min(self.selected_date.day, last_day)
         self.selected_date = datetime.date(self.current_year, self.current_month, day)
@@ -209,8 +334,24 @@ class CalendarWindow(QWidget):
         self.year_input.blockSignals(False)
 
     def update_full_date(self):
+        if self.selected_date is None:
+            self.full_date_label.setText("")
+            self.create_btn.hide()
+            return
         date = self.selected_date
         self.full_date_label.setText(f"{date.day:02d}.{date.month:02d}.{date.year}")
+        self.create_btn.show()
+
+    def open_create_dialog(self):
+        if self.selected_date is None:
+            return
+        dialog = CreateTaskDialog(self.selected_date, self)
+        dialog.task_saved.connect(self.create_task)
+        dialog.exec()
+
+    def create_task(self, task):
+        # CreateTask
+        print(task)
 
     def style_grid(self):
         theme = getattr(self, "theme", None)
@@ -311,6 +452,21 @@ class CalendarWindow(QWidget):
         self.empty_label.setStyleSheet(
             f"QLabel {{ color: {self.theme['muted']}; background: transparent; border: none; }}"
         )
+
+        self.create_btn.setFixedHeight(42)
+        self.create_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.accent['primary']};
+                color: {button_text};
+                border: none;
+                border-radius: 10px;
+                font-size: 15px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {self.accent['hover']};
+            }}
+        """)
 
         self.style_grid()
 
