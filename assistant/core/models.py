@@ -38,3 +38,20 @@ class ChatMessage(models.Model):
         return f"Автор - {self.author}; Текст - {self.text[:20]}"
 
 # Коля
+
+class Task(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    day = models.DateField()
+    time = models.TimeField()
+    difficulty = models.PositiveSmallIntegerField(choices=[
+        (1, "Легка"),
+        (2, "Середня"),
+        (3, "Складна"),
+    ])
+    photos = models.JSONField(default=list, blank=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title

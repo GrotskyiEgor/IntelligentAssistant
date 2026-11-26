@@ -5,6 +5,9 @@ from PyQt6.QtWidgets import (
 )
 
 
+from calendar_app import CalendarPanel
+
+
 class ChatMixin:
     def create_main_panel(self):
         self.main_panel_background_frame = QFrame()
@@ -18,9 +21,7 @@ class ChatMixin:
             }
         """)
 
-        self.main_panel_background_frame.setContentsMargins(10, 10, 10, 10)
-
-        self.main_panel_title = QLabel("Повідомлення")
+        self.main_panel_title = QLabel("Календар")
         self.main_panel_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_panel_title.setStyleSheet("""
             QLabel {
@@ -32,11 +33,13 @@ class ChatMixin:
             }
         """)
 
-        self.messages_layout = QVBoxLayout(self.main_panel_background_frame)
-        self.messages_layout.setContentsMargins(20, 20, 20, 20)
-        self.messages_layout.setSpacing(12)
+        panel_layout = QVBoxLayout(self.main_panel_background_frame)
+        panel_layout.setContentsMargins(10, 14, 10, 14)
+        panel_layout.setSpacing(10)
 
-        self.messages_layout.addWidget(self.main_panel_title)
+        self.calendar = CalendarPanel(self)
+        panel_layout.addWidget(self.main_panel_title)
+        panel_layout.addWidget(self.calendar, 1)
         self.main_layout.addWidget(self.main_panel_background_frame)
 
     def create_chat(self):

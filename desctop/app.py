@@ -11,6 +11,7 @@ from app_messages import MessageMixin
 from app_process import AssistantProcessMixin
 from app_theme import ThemeMixin
 from settings_app import SettingsWindow
+from task_app import TaskForm
 
 
 class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, AssistantProcessMixin, QMainWindow):
@@ -19,6 +20,7 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
 
         self.assistant_process = None
         self.settings = None
+        self.task_form = None
 
 
         try:
@@ -109,6 +111,23 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
         self.stop_btn.setEnabled(False)
         self.restart_btn.setEnabled(False)
         self.apply_theme(self.preferences)
+
+    def open_task_form(self):
+        if self.task_form:
+            return
+
+        self.task_form = TaskForm(self)
+        self.task_form.apply_theme(self.theme, self.accent)
+        self.messages_frame.hide()
+        self.messages_frame_back_layout.addWidget(self.task_form)
+        self.task_form.title_input.setFocus()
+
+    def close_task_form(self):
+        self.messages_frame_back_layout.removeWidget(self.task_form)
+        self.task_form.hide()
+        self.task_form.deleteLater()
+        self.task_form = None
+        self.messages_frame.show()
 
     def open_settings(self):
         self.settings = SettingsWindow(self)

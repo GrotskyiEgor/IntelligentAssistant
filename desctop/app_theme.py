@@ -195,6 +195,10 @@ class ThemeMixin:
         self.message_input.setStyleSheet(f"QLineEdit {{ border: none; background: transparent; color: {self.theme['foreground']}; font-size: 16px; }}")
         self.send_btn.setStyleSheet(f"QPushButton {{ background-color: {self.accent['primary']}; color: {button_text}; border-radius: 14px; font-size: 32px; }} QPushButton:hover {{ background-color: {self.accent['hover']}; color: white; }}")
 
+        self.calendar.apply_theme(settings)
+        if self.task_form:
+            self.task_form.apply_theme(self.theme, self.accent)
+
         if self.settings:
             self.settings.apply_theme(settings, sync_main=False)
 
