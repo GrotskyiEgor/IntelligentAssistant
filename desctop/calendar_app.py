@@ -86,7 +86,7 @@ class CalendarPanel(QWidget):
 
         for row in range(1, 7):
             self.grid_layout.setRowMinimumHeight(row, CELL)
-            
+
         calendar_layout.addLayout(self.grid_layout)
         layout.addWidget(self.calendar_frame)
 
