@@ -1,7 +1,7 @@
 <div align="center">
 
 <br>
-<img src='README_static/images/logo.png' height=125>
+<img src='README_static/icon.png' height=125>
 <br>
 <br>
 
@@ -50,7 +50,7 @@
 </div>
 
 <div align="center">
-    <img src='README_static/images/home.png' width=1000>
+    <img src='README_static/home.png' width=1000>
 </div>
 
 <h1 id="top">Навігація</h1>
