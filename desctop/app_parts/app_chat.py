@@ -134,6 +134,9 @@ class ChatMixin:
         self.messages_area.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
+        self.messages_area.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         self.messages_area.setStyleSheet(
             "QScrollArea { background: transparent; border: none; }"
         )

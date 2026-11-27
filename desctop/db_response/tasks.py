@@ -48,3 +48,10 @@ def update_task(task_id, data):
     task.full_clean()
     task.save()
     return task
+
+
+def delete_task(task_id):
+    setup_django()
+    from core.models import Task
+
+    Task.objects.filter(pk=task_id).delete()

@@ -45,6 +45,22 @@ def day_label(day, today):
     return WEEKDAYS[day.weekday()]
 
 
+ORDINALS = (
+    "Перше", "Друге", "Третє", "Четверте", "П'яте",
+    "Шосте", "Сьоме", "Восьме", "Дев'яте", "Десяте",
+)
+
+
+def task_line(index, task):
+    """Наприклад: «Перше о 09:00. Назва» або «Завдання 11 о 14:30. Назва»."""
+    ordinal = ORDINALS[index] if index < len(ORDINALS) else f"Завдання {index + 1}"
+    return f"{ordinal} о {task.time:%H:%M}. {title_of(task)}"
+
+
+def tasks_text(tasks):
+    return ". ".join(task_line(index, task) for index, task in enumerate(tasks))
+
+
 def load_tasks(first_day, last_day):
     from core.models import Task
 
@@ -92,8 +108,7 @@ class Tasks(Action):
         if not tasks:
             return ctx.speak(f"На {when} завдань немає")
 
-        titles = ". ".join(title_of(task) for task in tasks)
-        ctx.speak(f"На {when} {tasks_word(len(tasks))}. {titles}")
+        ctx.speak(f"На {when} {tasks_word(len(tasks))}. {tasks_text(tasks)}")
 
     @staticmethod
     def say_week(ctx, tasks, today):
@@ -107,5 +122,4 @@ class Tasks(Action):
             by_day.setdefault(task.day, []).append(task)
 
         for day, day_tasks in by_day.items():
-            titles = ". ".join(title_of(task) for task in day_tasks)
-            ctx.speak(f"{day_label(day, today)}. {titles}")
+            ctx.speak(f"{day_label(day, today)}. {tasks_text(day_tasks)}")

@@ -50,6 +50,24 @@ class VolumeDown(Action):
 
 
 @register
+class Mute(Action):
+    name = "mute"
+
+    def execute(self, ctx, text, matched):
+        ctx.speak("Вимикаю звук")
+        _press_key(VK_VOLUME_MUTE)
+
+
+@register
+class Unmute(Action):
+    name = "unmute"
+
+    def execute(self, ctx, text, matched):
+        _press_key(VK_VOLUME_MUTE)
+        ctx.speak("Звук увімкнено")
+
+
+@register
 class Shutdown(Action):
     name = "shutdown"
 

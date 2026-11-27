@@ -6,10 +6,10 @@ from PyQt6.QtCore import QDate, QSize, QTime, Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QComboBox, QDateEdit, QFileDialog, QFormLayout, QFrame, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QTextEdit, QTimeEdit, QVBoxLayout,
+    QLabel, QLineEdit, QMessageBox, QPushButton, QTextEdit, QTimeEdit, QVBoxLayout,
 )
 
-from db_response.tasks import create_task, update_task
+from db_response.tasks import create_task, delete_task, update_task
 
 
 class TaskForm(QFrame):
@@ -90,6 +90,12 @@ class TaskForm(QFrame):
         layout.addStretch()
 
         buttons = QHBoxLayout()
+        if task:
+            self.delete_btn = QPushButton("Видалити")
+            self.delete_btn.setObjectName("taskDeleteButton")
+            self.delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.delete_btn.clicked.connect(self.delete_task)
+            buttons.addWidget(self.delete_btn)
         buttons.addStretch()
         cancel_btn = QPushButton("Скасувати")
         cancel_btn.clicked.connect(win.close_task_form)
@@ -106,6 +112,22 @@ class TaskForm(QFrame):
         if files:
             self.photos = files
             self.photos_btn.setText(f"Вибрано фото: {len(files)}")
+
+    def delete_task(self):
+        answer = QMessageBox.question(
+            self, "Видалення завдання", f"Видалити завдання «{self.task.title}»?",
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            delete_task(self.task.pk)
+        except DatabaseError:
+            self.error_label.setText("Не вдалося видалити завдання з бази даних.")
+            return
+
+        self.win.calendar.select_date(self.task.day)
+        self.win.close_task_form()
 
     def save_task(self):
         if not self.title_input.text().strip():
@@ -170,6 +192,14 @@ class TaskForm(QFrame):
 
             QPushButton:hover {{
                 background-color: {accent['hover']};
+            }}
+
+            QPushButton#taskDeleteButton {{
+                background-color: #dc2626;
+            }}
+
+            QPushButton#taskDeleteButton:hover {{
+                background-color: #b91c1c;
             }}
 
             QPushButton#taskBackButton {{

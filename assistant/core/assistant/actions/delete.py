@@ -10,6 +10,8 @@ from ..nlp.text import normalize_text
 MATCH_THRESHOLD = 70
 AMBIGUITY_GAP = 5
  
+VERB_STEMS = ("видал", "стер", "зітр", "забуд")
+
 FILLER_WORDS = {
     "з", "із", "за", "по", "під", "будь", "ласка", "мені",
     "ключовим", "ключове", "словом", "слово", "назвою", "назва",
@@ -58,7 +60,7 @@ def extract_query(text) -> str:
     words = []
     for word in _clean(text).split():
         word = word.strip(".,!?:;")
-        if not word or word in FILLER_WORDS or word.startswith(stems):
+        if not word or word in FILLER_WORDS or word.startswith(stems + VERB_STEMS):
             continue
         words.append(word)
     return " ".join(words)
