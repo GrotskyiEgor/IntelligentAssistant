@@ -4,9 +4,11 @@ import webbrowser
 from ..services import precesses
 from ..services.usage import log_app, log_site
 from .base import Action, register
-from ..services.apps import find_app
+from ..nlp.dialog import ask_text
+from ..nlp.text import normalize_text
+from ..services.apps import find_app, is_exact_app
 from ...utils.find_path import find_path
-from ..services.sites import find_site
+from ..services.sites import find_site, has_site_word, is_exact_site, site_words
 
 
 def _target_text(text, matched):
@@ -23,11 +25,24 @@ class OpenApp(Action):
             ctx.speak("Що відкрити?")
             return
 
+        # Сказали лише "відкрий сайт" без назви: уточнюємо
+        if not site_words(target):
+            answer = ask_text(ctx, "Який сайт відкрити?", "Не почула. Назвіть сайт")
+            if not answer:
+                return
+            target = normalize_text(answer)
+
         app = find_app(target)
+        site = find_site(target)
+
+        # Сайт має пріоритет, якщо його назвали "сайтом" або його назва збігається
+        # повністю, а програма знайшлась лише приблизно (github і GitHub Desktop)
+        if site and (has_site_word(target) or (is_exact_site(site, target) and not is_exact_app(app, target))):
+            return self.open_site(ctx, site, text)
+
         if app:
             return self.open_app(ctx, app, text)
 
-        site = find_site(target)
         if site:
             return self.open_site(ctx, site, text)
 

@@ -4,6 +4,14 @@ from ..nlp.text import normalize_text
 from ..config import APP_THRESHOLD
 
 
+def is_exact_app(app, text) -> bool:
+    """Назва або ключ програми збігається із запитом повністю, а не приблизно."""
+    if not app:
+        return False
+    text = normalize_text(text)
+    return text in (normalize_text(app.keyword), normalize_text(app.name))
+
+
 def find_app(text):
     text = normalize_text(text)
     best, best_score = None, 0
