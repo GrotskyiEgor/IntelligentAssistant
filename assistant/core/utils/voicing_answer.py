@@ -20,14 +20,15 @@ async def create_voice(text, file_name):
 
 
 def voicing_text(text):
-    text = prevo_voice.speak(text)
-    if not text:
-        return
+    # text = prevo_voice.speak(text)
+    # if not text:
+    #     return
 
     file_name = os.path.join(tempfile.gettempdir(), f"voice_temp_{time.time()}.mp3")
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+
     try:
         loop.run_until_complete(create_voice(text=text, file_name=file_name))
     except Exception as error:

@@ -129,7 +129,7 @@ def speak(text) -> str:
             client.voice(chunk)
         except Exception as error:
             _state["retry_at"] = time.monotonic() + COOLDOWN
-            # print(f"TTS: збій prevotts ({error}), далі edge-tts", flush=True)
+            print(f"TTS: збій prevotts ({error}), далі edge-tts", flush=True)
             return " ".join(chunks[index:])
 
     return ""
