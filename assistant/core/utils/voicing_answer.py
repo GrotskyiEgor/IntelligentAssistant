@@ -6,6 +6,8 @@ import threading
 
 import edge_tts
 
+from . import prevo_voice
+
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame
 
@@ -18,6 +20,10 @@ async def create_voice(text, file_name):
 
 
 def voicing_text(text):
+    text = prevo_voice.speak(text)
+    if not text:
+        return
+
     file_name = os.path.join(tempfile.gettempdir(), f"voice_temp_{time.time()}.mp3")
 
     loop = asyncio.new_event_loop()

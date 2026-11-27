@@ -12,7 +12,7 @@ from core.assistant.actions.base import ACTIONS, ActionContext
 from core.assistant.nlp.matcher import CommandMatcher
 from core.assistant.nlp.text import normalize_text
 from core.assistant.listeners.factory import create_listener
-from core.assistant.stdin_reader import StdinReader
+from core.assistant.stdin_reader import MIC_OFF, MIC_ON, StdinReader
 from core.assistant.nlp.phrases import store
 from core.assistant.services.app_scanner import scan_if_first_run
 
@@ -52,6 +52,7 @@ class Command(BaseCommand):
         inputs: queue.Queue[tuple[str, bool]] = queue.Queue()
 
         speaking = threading.Event()
+        mic_muted = threading.Event()
         state = {"end": 0.0}
 
         def is_running() -> bool:
@@ -74,6 +75,14 @@ class Command(BaseCommand):
                     except queue.Empty:
                         break
 
+        def on_control(command):
+            if command == MIC_OFF:
+                mic_muted.set()
+                print("Мікрофон вимкнено.", flush=True)
+            elif command == MIC_ON:
+                mic_muted.clear()
+                print("Мікрофон увімкнено.", flush=True)
+
         def listen():
             try:
                 return inputs.get(timeout=LISTEN_TIMEOUT)[0]
@@ -88,10 +97,18 @@ class Command(BaseCommand):
 
         def mic_loop():
             while is_running():
+                if mic_muted.is_set():
+                    time.sleep(0.2)
+                    continue
+
                 try:
                     text = listener.listen()
                 except Exception as error:
                     print(f"LISTENER ERROR: {error}", flush=True)
+                    continue
+
+                if mic_muted.is_set():
+                    # фраза була спіймана вже після заглушення
                     continue
 
                 if not (text and text.strip()):
@@ -105,7 +122,11 @@ class Command(BaseCommand):
                 inputs.put((text, True))
 
         threading.Thread(target=mic_loop, daemon=True).start()
-        StdinReader(on_text=lambda t: inputs.put((t, False)), is_running=is_running).start()
+        StdinReader(
+            on_text=lambda t: inputs.put((t, False)),
+            is_running=is_running,
+            on_control=on_control,
+        ).start()
 
         print("Помічник запущений. Готовий до команд.", flush=True)
 

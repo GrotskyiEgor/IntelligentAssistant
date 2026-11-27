@@ -92,6 +92,11 @@ class CommandPanelMixin:
         self.restart_btn.setFixedSize(220, 42)
         self.restart_btn.clicked.connect(self.restart_assintant)
 
+        self.mic_btn = QPushButton("Заглушити", assistant_frame)
+        self.mic_btn.setFixedSize(220, 42)
+        self.mic_btn.clicked.connect(lambda: self.toggle_mic())
+        self.mic_btn.hide()
+
         assistant_layout.addWidget(
             self.commands_label,
             alignment=Qt.AlignmentFlag.AlignHCenter
@@ -109,6 +114,11 @@ class CommandPanelMixin:
 
         assistant_layout.addWidget(
             self.restart_btn,
+            alignment=Qt.AlignmentFlag.AlignHCenter
+        )
+
+        assistant_layout.addWidget(
+            self.mic_btn,
             alignment=Qt.AlignmentFlag.AlignHCenter
         )
 

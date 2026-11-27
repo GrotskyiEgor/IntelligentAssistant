@@ -4,7 +4,26 @@ import sys
 from PyQt6.QtCore import QProcess, QProcessEnvironment
 
 
+MIC_OFF = "__MIC_OFF__"
+MIC_ON = "__MIC_ON__"
+
+
 class AssistantProcessMixin:
+    def set_mic_muted(self, muted):
+        self.mic_muted = muted
+        self.mic_btn.setText("Продовжити" if muted else "Заглушити")
+
+    def toggle_mic(self):
+        if self.assistant_process is None:
+            return
+
+        muted = not getattr(self, "mic_muted", False)
+        command = MIC_OFF if muted else MIC_ON
+
+        self.assistant_process.write((command + "\n").encode("utf-8"))
+        self.assistant_process.waitForBytesWritten(1000)
+        self.set_mic_muted(muted)
+
     def start_assintant(self):
         if self.assistant_process is not None:
             return
@@ -43,6 +62,8 @@ class AssistantProcessMixin:
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         self.restart_btn.setEnabled(True)
+        self.set_mic_muted(False)
+        self.mic_btn.show()
 
     def stop_assintant(self, on_stopped=None):
         process = self.assistant_process
@@ -118,3 +139,5 @@ class AssistantProcessMixin:
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.restart_btn.setEnabled(False)
+        self.mic_btn.hide()
+        self.set_mic_muted(False)
