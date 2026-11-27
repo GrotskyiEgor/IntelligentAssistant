@@ -5,6 +5,9 @@ from PyQt6.QtWidgets import (
 )
 
 
+from calendar_app import CalendarPanel
+
+
 class ChatMixin:
     def create_main_panel(self):
         self.main_panel_background_frame = QFrame()

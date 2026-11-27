@@ -114,6 +114,44 @@ class CommandPanelMixin:
 
         self.commands_layout.addWidget(assistant_frame)
 
+        tasks_frame = QFrame()
+        tasks_frame.setObjectName("section_frame")
+        tasks_frame.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed
+        )
+
+        tasks_layout = QVBoxLayout(tasks_frame)
+        tasks_layout.setContentsMargins(10, 10, 10, 10)
+        tasks_layout.setSpacing(8)
+
+        self.tasks_label = QLabel("Завдання")
+        self.tasks_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.tasks_label.setStyleSheet("""
+            QLabel {
+                color: white;
+                background: transparent;
+                border: none;
+                font-size: 18px;
+                font-weight: bold;
+            }
+        """)
+
+        self.create_task_btn = QPushButton("Створити завдання", tasks_frame)
+        self.create_task_btn.setFixedSize(220, 45)
+        self.create_task_btn.clicked.connect(self.open_task_form)
+
+        tasks_layout.addWidget(
+            self.tasks_label,
+            alignment=Qt.AlignmentFlag.AlignHCenter
+        )
+        tasks_layout.addWidget(
+            self.create_task_btn,
+            alignment=Qt.AlignmentFlag.AlignHCenter
+        )
+
+        self.commands_layout.addWidget(tasks_frame)
+
         groups_frame = QFrame()
         groups_frame.setObjectName("section_frame")
         groups_frame.setSizePolicy(

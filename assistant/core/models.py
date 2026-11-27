@@ -81,12 +81,18 @@ class UsageLog(models.Model):
         return f"{self.created_at:%Y-%m-%d %H:%M} {self.kind}/{self.action} {self.target}"
 
 class Task(models.Model):
+    title = models.CharField(max_length=255, default="Новая задача")
+    description = models.TextField(blank=True)
     day = models.DateField()
     time = models.TimeField()
-    difficulty = models.IntegerField()
-    priority = models.IntegerField(default=1)
+    difficulty = models.PositiveSmallIntegerField(choices=[
+        (1, "Легка"),
+        (2, "Середня"),
+        (3, "Складна"),
+    ])
+    photos = models.JSONField(default=list, blank=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"Задача {self.id}"
+    def str(self):
+        return self.title

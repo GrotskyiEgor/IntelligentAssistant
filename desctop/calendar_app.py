@@ -1,12 +1,14 @@
 import calendar as calendar_lib
 import datetime
 
+from django.db import DatabaseError
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
-    QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QSizePolicy, QVBoxLayout, QWidget,
+    QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit, QListWidget,
+    QListWidgetItem, QPushButton, QSizePolicy, QVBoxLayout, QWidget,
 )
 
+from db_response.tasks import tasks_for_day
 from theme import get_theme_colors
 
 
@@ -23,7 +25,7 @@ HEADER_H = 34
 
 
 class CalendarPanel(QWidget):
-    """Календар для вбудови в ліву панель (раніше це було окреме вікно CalendarWindow)."""
+    """Календар зверху і завдання вибраного дня знизу (ліва панель)."""
 
     date_selected = pyqtSignal(object)
 
@@ -81,46 +83,49 @@ class CalendarPanel(QWidget):
         self.grid_layout = QGridLayout()
         self.grid_layout.setSpacing(SPACING)
         self.grid_layout.setRowMinimumHeight(0, 20)
-
         for row in range(1, 7):
             self.grid_layout.setRowMinimumHeight(row, CELL)
-            
         calendar_layout.addLayout(self.grid_layout)
         layout.addWidget(self.calendar_frame)
 
+        # Завдання вибраного дня
         self.bottom_frame = QFrame()
         self.bottom_frame.setObjectName("dayFrame")
         bottom_layout = QVBoxLayout(self.bottom_frame)
         bottom_layout.setContentsMargins(8, 8, 8, 8)
         bottom_layout.setSpacing(8)
 
-        self.day_title = QLabel("Обраний день")
+        self.day_title = QLabel()
         self.day_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.day_title.setFixedHeight(32)
-
-        self.full_date_label = QLabel()
-        self.full_date_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.full_date_label.setFixedHeight(32)
-
         bottom_layout.addWidget(self.day_title)
-        bottom_layout.addWidget(self.full_date_label)
 
         self.events_frame = QFrame()
         self.events_frame.setObjectName("eventsFrame")
         self.events_frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         events_layout = QVBoxLayout(self.events_frame)
-        events_layout.setContentsMargins(0, 0, 0, 0)
+        events_layout.setContentsMargins(6, 6, 6, 6)
 
-        self.empty_label = QLabel("Подій поки немає")
+        self.empty_label = QLabel("Завдань на цей день немає")
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.empty_label.setWordWrap(True)
         events_layout.addWidget(self.empty_label)
+
+        self.tasks_list = QListWidget()
+        self.tasks_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.tasks_list.setWordWrap(False)
+        self.tasks_list.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.tasks_list.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
+        events_layout.addWidget(self.tasks_list)
 
         bottom_layout.addWidget(self.events_frame, 1)
         layout.addWidget(self.bottom_frame, 1)
 
         self.build_grid()
-        self.update_full_date()
+        self.update_day_panel()
         self.apply_theme()
+
+    # ---------- календарна сітка ----------
 
     def build_grid(self):
         while self.grid_layout.count():
@@ -159,8 +164,13 @@ class CalendarPanel(QWidget):
 
     def select_date(self, date):
         self.selected_date = date
-        self.update_full_date()
-        self.style_grid()
+        if (date.year, date.month) != (self.current_year, self.current_month):
+            self.current_year = date.year
+            self.current_month = date.month
+            self.after_period_change()
+        else:
+            self.update_day_panel()
+            self.style_grid()
         self.date_selected.emit(date)
 
     def prev_month(self):
@@ -180,6 +190,10 @@ class CalendarPanel(QWidget):
         self.after_period_change()
 
     def wheelEvent(self, event):
+        # Місяць гортаємо колесом лише над календарем, а не над списком завдань
+        if event.position().y() > self.calendar_frame.geometry().bottom():
+            event.ignore()
+            return
         delta = event.angleDelta().y()
         if delta > 0:
             self.prev_month()
@@ -192,7 +206,7 @@ class CalendarPanel(QWidget):
         self.month_label.setText(MONTHS[self.current_month - 1])
         self.move_selection()
         self.build_grid()
-        self.update_full_date()
+        self.update_day_panel()
 
     def on_year_changed(self, text):
         text = text.strip()
@@ -204,9 +218,11 @@ class CalendarPanel(QWidget):
         self.current_year = year
         self.move_selection()
         self.build_grid()
-        self.update_full_date()
+        self.update_day_panel()
 
     def move_selection(self):
+        if self.selected_date is None:
+            return
         last_day = calendar_lib.monthrange(self.current_year, self.current_month)[1]
         day = min(self.selected_date.day, last_day)
         self.selected_date = datetime.date(self.current_year, self.current_month, day)
@@ -216,9 +232,35 @@ class CalendarPanel(QWidget):
         self.year_input.setText(text)
         self.year_input.blockSignals(False)
 
-    def update_full_date(self):
+    # ---------- завдання вибраного дня ----------
+
+    def update_day_panel(self):
         date = self.selected_date
-        self.full_date_label.setText(f"{date.day:02d}.{date.month:02d}.{date.year}")
+        self.day_title.setText(f"Завдання на {date.day:02d}.{date.month:02d}.{date.year}")
+        self.refresh_tasks()
+
+    def refresh_tasks(self):
+        self.tasks_list.clear()
+        try:
+            tasks = tasks_for_day(self.selected_date)
+        except DatabaseError:
+            tasks = []
+            self.empty_label.setText("База завдань недоступна")
+        else:
+            self.empty_label.setText("Завдань на цей день немає")
+
+        for task in tasks:
+            task_time = getattr(task, "time", None)
+            prefix = f"{task_time:%H:%M}  " if task_time else ""
+            item = QListWidgetItem(f"{prefix}{task.title}")
+            description = (getattr(task, "description", "") or "").strip()
+            item.setToolTip(f"{task.title}\n{description}" if description else task.title)
+            self.tasks_list.addItem(item)
+
+        self.tasks_list.setVisible(bool(tasks))
+        self.empty_label.setVisible(not tasks)
+
+    # ---------- оформлення ----------
 
     def style_grid(self):
         theme = getattr(self, "theme", None)
@@ -253,35 +295,39 @@ class CalendarPanel(QWidget):
     def apply_theme(self, settings=None):
         settings = {**self.win.preferences, **(settings or {})}
         self.theme, self.accent = get_theme_colors(settings)
+        theme, accent = self.theme, self.accent
         button_text = "white" if settings.get("accent") in {"purple", "blue", "lime", "orange"} else "#2d2d2d"
         self.button_text = button_text
 
         self.setStyleSheet(
-            f"background: transparent; color: {self.theme['foreground']}; font-size: 14px;"
+            f"background: transparent; color: {theme['foreground']}; font-size: 14px;"
         )
 
         field_style = f"""
             QLineEdit, QLabel {{
-                background: {self.theme['field']};
-                color: {self.theme['foreground']};
-                border: 1px solid {self.theme['border']};
+                background: {theme['field']};
+                color: {theme['foreground']};
+                border: 1px solid {theme['border']};
                 border-radius: 9px;
                 padding: 0 6px;
             }}
         """
         self.year_input.setStyleSheet(field_style)
-        self.day_title.setStyleSheet(field_style)
-        self.full_date_label.setStyleSheet(field_style)
+        self.day_title.setStyleSheet(
+            f"QLabel {{ background: {theme['field']}; color: {theme['foreground']}; "
+            f"border: 1px solid {theme['border']}; border-radius: 9px; padding: 0 6px; "
+            f"font-size: 13px; font-weight: bold; }}"
+        )
 
         self.month_label.setStyleSheet(
-            f"QLabel {{ color: {self.theme['foreground']}; background: transparent; "
+            f"QLabel {{ color: {theme['foreground']}; background: transparent; "
             f"border: none; font-size: 16px; font-weight: bold; padding: 0; }}"
         )
 
         for button in (self.prev_btn, self.next_btn):
             button.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {self.accent['primary']};
+                    background-color: {accent['primary']};
                     color: {button_text};
                     border: none;
                     border-radius: 9px;
@@ -289,27 +335,52 @@ class CalendarPanel(QWidget):
                     font-weight: bold;
                 }}
                 QPushButton:hover {{
-                    background-color: {self.accent['hover']};
+                    background-color: {accent['hover']};
                 }}
             """)
 
         self.calendar_frame.setStyleSheet(
-            f"QFrame#calendarFrame {{ background-color: {self.theme['window']}; border-radius: 14px; }}"
+            f"QFrame#calendarFrame {{ background-color: {theme['window']}; border-radius: 14px; }}"
         )
         self.bottom_frame.setStyleSheet(
-            f"QFrame#dayFrame {{ background-color: {self.theme['window']}; border-radius: 14px; }}"
+            f"QFrame#dayFrame {{ background-color: {theme['panel']}; border-radius: 16px; }}"
         )
         self.events_frame.setStyleSheet(
-            f"QFrame#eventsFrame {{ background-color: {self.theme['panel']}; border-radius: 10px; }}"
+            f"QFrame#eventsFrame {{ background-color: {theme['window']}; border-radius: 12px; }}"
         )
         self.empty_label.setStyleSheet(
-            f"QLabel {{ color: {self.theme['muted']}; background: transparent; border: none; }}"
+            f"QLabel {{ color: {theme['muted']}; background: transparent; border: none; }}"
         )
+        self.tasks_list.setStyleSheet(f"""
+            QListWidget {{
+                background: transparent;
+                border: none;
+                outline: none;
+                color: {theme['foreground']};
+                font-size: 13px;
+            }}
+            QListWidget::item {{
+                background: {theme['field']};
+                color: {theme['foreground']};
+                border: 1px solid {theme['border']};
+                border-radius: 8px;
+                padding: 7px 8px;
+                margin: 0 0 4px 0;
+            }}
+            QListWidget::item:selected {{
+                background: {accent['primary']};
+                color: {button_text};
+                border-color: {accent['primary']};
+            }}
+            QListWidget::item:hover:!selected {{
+                border-color: {accent['primary']};
+            }}
+        """)
 
         for label in self.calendar_frame.findChildren(QLabel):
             if label.text() in WEEKDAYS:
                 label.setStyleSheet(
-                    f"QLabel {{ color: {self.theme['muted']}; background: transparent; "
+                    f"QLabel {{ color: {theme['muted']}; background: transparent; "
                     f"border: none; font-size: 12px; font-weight: bold; padding: 0; }}"
                 )
 
