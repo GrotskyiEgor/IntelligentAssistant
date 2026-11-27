@@ -139,7 +139,7 @@ class CommandPanelMixin:
 
         self.create_task_btn = QPushButton("Створити завдання", tasks_frame)
         self.create_task_btn.setFixedSize(220, 45)
-        self.create_task_btn.clicked.connect(self.open_task_form)
+        self.create_task_btn.clicked.connect(lambda: self.open_task_form())
 
         tasks_layout.addWidget(
             self.tasks_label,
@@ -238,6 +238,7 @@ class CommandPanelMixin:
             new_command_frame
         )
         self.new_command_btn.setFixedSize(150, 45)
+        self.new_command_btn.clicked.connect(self.send_new_command)
 
         new_command_layout.addWidget(
             self.new_command_label,

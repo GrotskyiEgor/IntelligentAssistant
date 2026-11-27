@@ -331,11 +331,13 @@ class MainWindow(ThemeMixin, ChatMixin, MessageMixin, CommandPanelMixin, Assista
             button.clicked.connect(lambda checked=False, value=task: self.open_scheduled_task(value))
             self.tasks_buttons_layout.insertWidget(self.tasks_buttons_layout.count() - 1, button)
 
-    def open_task_form(self):
+    def open_task_form(self, task=None):
         if self.task_form:
-            return
+            if task is None:
+                return
+            self.close_task_form()
 
-        self.task_form = TaskForm(self)
+        self.task_form = TaskForm(self, task)
         self.task_form.apply_theme(self.theme, self.accent)
         self.messages_frame.hide()
         self.messages_frame_back_layout.addWidget(self.task_form)

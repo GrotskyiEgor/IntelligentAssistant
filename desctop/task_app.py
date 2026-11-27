@@ -9,13 +9,14 @@ from PyQt6.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QTextEdit, QTimeEdit, QVBoxLayout,
 )
 
-from db_response.tasks import create_task
+from db_response.tasks import create_task, update_task
 
 
 class TaskForm(QFrame):
-    def __init__(self, win):
+    def __init__(self, win, task=None):
         super().__init__()
         self.win = win
+        self.task = task
         self.photos = []
 
         layout = QVBoxLayout(self)
@@ -36,7 +37,7 @@ class TaskForm(QFrame):
         self.back_btn.setFixedSize(42, 42)
         self.back_btn.clicked.connect(win.close_task_form)
 
-        title = QLabel("Створення завдання")
+        title = QLabel("Редагування завдання" if task else "Створення завдання")
         title.setObjectName("taskTitle")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -54,7 +55,7 @@ class TaskForm(QFrame):
         self.description_input = QTextEdit()
         self.description_input.setFixedHeight(100)
 
-        day = win.calendar.selected_date
+        day = task.day if task else win.calendar.selected_date
         self.day_input = QDateEdit(QDate(day.year, day.month, day.day))
         self.day_input.setCalendarPopup(True)
         self.day_input.setDisplayFormat("dd.MM.yyyy")
@@ -64,6 +65,15 @@ class TaskForm(QFrame):
         self.difficulty_input = QComboBox()
         for value, label in ((1, "Легка"), (2, "Середня"), (3, "Складна")):
             self.difficulty_input.addItem(label, value)
+
+        if task:
+            self.title_input.setText(task.title)
+            self.description_input.setPlainText(getattr(task, "description", "") or "")
+            task_time = task.time
+            self.time_input.setTime(QTime(task_time.hour, task_time.minute))
+            index = self.difficulty_input.findData(task.difficulty)
+            if index >= 0:
+                self.difficulty_input.setCurrentIndex(index)
 
         self.photos_btn = QPushButton("Вибрати фото")
         self.photos_btn.clicked.connect(self.select_photos)
@@ -83,7 +93,7 @@ class TaskForm(QFrame):
         buttons.addStretch()
         cancel_btn = QPushButton("Скасувати")
         cancel_btn.clicked.connect(win.close_task_form)
-        self.save_btn = QPushButton("Створити")
+        self.save_btn = QPushButton("Зберегти" if task else "Створити")
         self.save_btn.clicked.connect(self.save_task)
         buttons.addWidget(cancel_btn)
         buttons.addWidget(self.save_btn)
@@ -103,15 +113,22 @@ class TaskForm(QFrame):
             self.title_input.setFocus()
             return
 
+        data = {
+            "title": self.title_input.text(),
+            "description": self.description_input.toPlainText(),
+            "day": self.day_input.date().toPyDate(),
+            "time": self.time_input.time().toPyTime().replace(second=0, microsecond=0),
+            "difficulty": self.difficulty_input.currentData(),
+        }
+
         try:
-            task = create_task({
-                "title": self.title_input.text(),
-                "description": self.description_input.toPlainText(),
-                "day": self.day_input.date().toPyDate(),
-                "time": self.time_input.time().toPyTime().replace(second=0, microsecond=0),
-                "difficulty": self.difficulty_input.currentData(),
-                "photos": self.photos,
-            })
+            if self.task is None:
+                data["photos"] = self.photos
+                task = create_task(data)
+            else:
+                if self.photos:  # нові фото додаємо лише якщо їх вибрали
+                    data["photos"] = self.photos
+                task = update_task(self.task.pk, data)
         except ValidationError as error:
             self.error_label.setText(" ".join(error.messages))
             return

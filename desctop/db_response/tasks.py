@@ -29,3 +29,22 @@ def create_task(data):
     from core.tasks import create_task as save_task
 
     return save_task(data)
+
+
+def update_task(task_id, data):
+    setup_django()
+    from core import tasks as core_tasks
+
+    # Якщо в core.tasks є своя функція оновлення, користуємось нею
+    if hasattr(core_tasks, "update_task"):
+        return core_tasks.update_task(task_id, data)
+
+    from core.models import Task
+
+    task = Task.objects.get(pk=task_id)
+    for field in ("title", "description", "day", "time", "difficulty"):
+        if field in data:
+            setattr(task, field, data[field])
+    task.full_clean()
+    task.save()
+    return task

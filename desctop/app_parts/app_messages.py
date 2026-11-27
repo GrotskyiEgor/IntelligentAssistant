@@ -9,11 +9,14 @@ class MessageMixin:
         if not text:
             return
 
+        self.send_text(text)
+        self.message_input.clear()
+
+    def send_text(self, text):
         self.add_message("Ви", text)
 
         if self.assistant_process is None:
             self.add_message(self.assistant_display_name(), "Помічник не запущений.")
-            self.message_input.clear()
             return
 
         self.assistant_process.write(
@@ -22,7 +25,11 @@ class MessageMixin:
 
         self.assistant_process.waitForBytesWritten(1000)
 
-        self.message_input.clear()
+    def send_new_command(self):
+        # Якщо відкрита форма завдання, повертаємось у чат, щоб бачити відповідь бота
+        if self.task_form:
+            self.close_task_form()
+        self.send_text("створи команду")
 
     def add_message(self, sender, text):
         is_outgoing = sender == "Ви"

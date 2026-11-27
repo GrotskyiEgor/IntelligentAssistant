@@ -38,6 +38,7 @@ class CalendarPanel(QWidget):
         self.current_month = today.month
         self.selected_date = today
         self.day_buttons = []
+        self.day_tasks = {}
 
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
@@ -116,6 +117,7 @@ class CalendarPanel(QWidget):
         self.tasks_list.setWordWrap(False)
         self.tasks_list.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.tasks_list.setVerticalScrollMode(QListWidget.ScrollMode.ScrollPerPixel)
+        self.tasks_list.itemClicked.connect(self.on_task_clicked)
         events_layout.addWidget(self.tasks_list)
 
         bottom_layout.addWidget(self.events_frame, 1)
@@ -241,6 +243,7 @@ class CalendarPanel(QWidget):
 
     def refresh_tasks(self):
         self.tasks_list.clear()
+        self.day_tasks = {}
         try:
             tasks = tasks_for_day(self.selected_date)
         except DatabaseError:
@@ -255,10 +258,18 @@ class CalendarPanel(QWidget):
             item = QListWidgetItem(f"{prefix}{task.title}")
             description = (getattr(task, "description", "") or "").strip()
             item.setToolTip(f"{task.title}\n{description}" if description else task.title)
+            item.setData(Qt.ItemDataRole.UserRole, task.pk)
+            self.day_tasks[task.pk] = task
             self.tasks_list.addItem(item)
 
         self.tasks_list.setVisible(bool(tasks))
         self.empty_label.setVisible(not tasks)
+
+    def on_task_clicked(self, item):
+        task = self.day_tasks.get(item.data(Qt.ItemDataRole.UserRole))
+        self.tasks_list.clearSelection()
+        if task is not None:
+            self.win.open_task_form(task)
 
     # ---------- оформлення ----------
 
